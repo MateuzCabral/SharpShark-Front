@@ -12,17 +12,16 @@ import { UserPlus, Pencil, Trash2, Search } from "lucide-react";
 interface User {
   id: string;
   name: string;
-  email: string;
   role: "admin" | "user";
   created_at: string;
   status: "active" | "inactive";
 }
 
 const mockUsers: User[] = [
-  { id: "1", name: "Admin User", email: "admin@example.com", role: "admin", created_at: "2024-01-15", status: "active" },
-  { id: "2", name: "John Doe", email: "john@example.com", role: "user", created_at: "2024-02-20", status: "active" },
-  { id: "3", name: "Jane Smith", email: "jane@example.com", role: "user", created_at: "2024-03-10", status: "active" },
-  { id: "4", name: "Bob Wilson", email: "bob@example.com", role: "user", created_at: "2024-03-25", status: "inactive" },
+  { id: "1", name: "Admin User", role: "admin", created_at: "2024-01-15", status: "active" },
+  { id: "2", name: "John Doe", role: "user", created_at: "2024-02-20", status: "active" },
+  { id: "3", name: "Jane Smith", role: "user", created_at: "2024-03-10", status: "active" },
+  { id: "4", name: "Bob Wilson", role: "user", created_at: "2024-03-25", status: "inactive" },
 ];
 
 export const UsersManagement = () => {
@@ -31,13 +30,12 @@ export const UsersManagement = () => {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [formData, setFormData] = useState({ name: "", email: "", role: "user" as "admin" | "user" });
+  const [formData, setFormData] = useState({ name: "", password: "", role: "user" as "admin" | "user", status: "active" as "active" | "inactive" });
   const { toast } = useToast();
 
   const filteredUsers = users.filter(
     (user) =>
       user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.id.includes(searchTerm)
   );
 
@@ -45,14 +43,13 @@ export const UsersManagement = () => {
     const newUser: User = {
       id: Math.random().toString(36).substr(2, 9),
       name: formData.name,
-      email: formData.email,
       role: formData.role,
       created_at: new Date().toISOString().split("T")[0],
       status: "active",
     };
     setUsers([...users, newUser]);
     setIsCreateOpen(false);
-    setFormData({ name: "", email: "", role: "user" });
+    setFormData({ name: "", password: "", role: "user", status: "active" });
     toast({
       title: "Usuário criado",
       description: `${newUser.name} foi adicionado com sucesso.`,
@@ -64,13 +61,13 @@ export const UsersManagement = () => {
     setUsers(
       users.map((user) =>
         user.id === selectedUser.id
-          ? { ...user, name: formData.name, email: formData.email, role: formData.role }
+          ? { ...user, name: formData.name, role: formData.role, status: formData.status }
           : user
       )
     );
     setIsEditOpen(false);
     setSelectedUser(null);
-    setFormData({ name: "", email: "", role: "user" });
+    setFormData({ name: "", password: "", role: "user", status: "active" });
     toast({
       title: "Usuário atualizado",
       description: "As informações foram atualizadas com sucesso.",
@@ -88,7 +85,7 @@ export const UsersManagement = () => {
 
   const openEditDialog = (user: User) => {
     setSelectedUser(user);
-    setFormData({ name: user.name, email: user.email, role: user.role });
+    setFormData({ name: user.name, password: "", role: user.role, status: user.status });
     setIsEditOpen(true);
   };
 
@@ -123,13 +120,13 @@ export const UsersManagement = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="create-email">Email</Label>
+                  <Label htmlFor="create-password">Senha</Label>
                   <Input
-                    id="create-email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="email@exemplo.com"
+                    id="create-password"
+                    type="password"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    placeholder="Senha do usuário"
                   />
                 </div>
                 <div className="space-y-2">
@@ -160,7 +157,7 @@ export const UsersManagement = () => {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Buscar por nome, email ou ID..."
+              placeholder="Buscar por nome ou ID..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-9"
@@ -174,7 +171,6 @@ export const UsersManagement = () => {
               <TableRow>
                 <TableHead>ID</TableHead>
                 <TableHead>Nome</TableHead>
-                <TableHead>Email</TableHead>
                 <TableHead>Função</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Criado em</TableHead>
@@ -184,7 +180,7 @@ export const UsersManagement = () => {
             <TableBody>
               {filteredUsers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground">
+                  <TableCell colSpan={6} className="text-center text-muted-foreground">
                     Nenhum usuário encontrado
                   </TableCell>
                 </TableRow>
@@ -193,7 +189,6 @@ export const UsersManagement = () => {
                   <TableRow key={user.id}>
                     <TableCell className="font-mono text-xs">{user.id}</TableCell>
                     <TableCell className="font-medium">{user.name}</TableCell>
-                    <TableCell>{user.email}</TableCell>
                     <TableCell>
                       <Badge variant={user.role === "admin" ? "default" : "secondary"}>
                         {user.role === "admin" ? "Admin" : "Usuário"}
@@ -239,13 +234,13 @@ export const UsersManagement = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-email">Email</Label>
+                <Label htmlFor="edit-email">Senha</Label>
                 <Input
-                  id="edit-email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="email@exemplo.com"
+                  id="edit-password"
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  placeholder="Nova senha (deixe em branco para manter)"
                 />
               </div>
               <div className="space-y-2">
@@ -258,6 +253,18 @@ export const UsersManagement = () => {
                 >
                   <option value="user">Usuário</option>
                   <option value="admin">Administrador</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-status">Status</Label>
+                <select
+                  id="edit-status"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value as "active" | "inactive" })}
+                >
+                  <option value="active">Ativo</option>
+                  <option value="inactive">Inativo</option>
                 </select>
               </div>
             </div>
