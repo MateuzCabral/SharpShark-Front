@@ -1,0 +1,100 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    --background: 216 100% 7%;
+    --foreground: 210 40% 98%;
+
+    --card: 217 50% 10%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 217 50% 10%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 199 89% 48%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 217 32% 17%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217 32% 17%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 199 89% 48%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217 32% 20%;
+    --input: 217 32% 15%;
+    --ring: 199 89% 48%;
+
+    --radius: 0.5rem;
+
+    --login-glow: 199 89% 48%;
+    --login-input-bg: 217 50% 8%;
+    --login-card-bg: 217 40% 12%;
+  }
+
+  .dark {
+    --background: 216 100% 7%;
+    --foreground: 210 40% 98%;
+
+    --card: 217 50% 10%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 217 50% 10%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 199 89% 48%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 217 32% 17%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217 32% 17%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 199 89% 48%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62% 31%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217 32% 20%;
+    --input: 217 32% 15%;
+    --ring: 199 89% 48%;
+    
+    --login-glow: 199 89% 48%;
+    --login-input-bg: 217 50% 8%;
+    --login-card-bg: 217 40% 12%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+}
+
+@layer utilities {
+  .login-glow {
+    box-shadow: 0 0 20px hsl(var(--login-glow) / 0.3);
+  }
+  
+  .login-glow-hover:hover {
+    box-shadow: 0 0 30px hsl(var(--login-glow) / 0.5);
+  }
+}
