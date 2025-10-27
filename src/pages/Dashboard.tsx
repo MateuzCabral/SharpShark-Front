@@ -7,8 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Activity, AlertTriangle, Globe, Network, TrendingUp, RefreshCw, Download, FileText, Settings, Users, Shield, FileUp, Loader2
-} from "lucide-react"; // Removidos ícones não usados diretamente aqui
+  Activity, AlertTriangle, Globe, Network, TrendingUp, RefreshCw, FileText, Settings, Users, Shield, FileUp, Loader2, LogOut
+} from "lucide-react";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { TrafficChart } from "@/components/dashboard/TrafficChart";
 import { AlertsTable } from "@/components/dashboard/AlertsTable";
@@ -19,7 +19,8 @@ import { HashSearch } from "@/components/dashboard/HashSearch";
 import { UsersManagement } from "@/components/dashboard/UsersManagement";
 import { SettingsManagement } from "@/components/dashboard/SettingsManagement";
 import { CustomRules } from "@/components/dashboard/CustomRules";
-import { getDashboardStats } from "@/api/stats"; // Integração
+import { getDashboardStats } from "@/api/stats";
+import { logoutUser } from "@/api/auth"; // Importar logoutUser
 
 const Dashboard = () => {
   const queryClient = useQueryClient();
@@ -39,6 +40,12 @@ const Dashboard = () => {
     await queryClient.invalidateQueries({ queryKey: ['analyses'] });
     // setTimeout para feedback visual
     setTimeout(() => setIsRefreshing(false), 500);
+  };
+
+  // Função para lidar com o logout
+  const handleLogout = () => {
+     logoutUser(); // Chama a função que remove o token e redireciona
+     // O redirecionamento já está em logoutUser() ou será pego pelo ProtectedRoute
   };
 
   return (
@@ -66,14 +73,21 @@ const Dashboard = () => {
                <RefreshCw className={`h-4 w-4 ${(isRefreshing || isFetchingStats) ? "animate-spin" : ""}`} />
                {(isRefreshing || isFetchingStats) ? "Atualizando..." : "Atualizar"}
              </Button>
-             <Button variant="outline" size="sm" className="gap-2" disabled>
-               <Download className="h-4 w-4" />
-               Exportar
+             {/* Botão Sair */}
+             <Button
+               variant="outline"
+               size="sm"
+               className="gap-2 text-destructive border-destructive/50 hover:bg-destructive/10 hover:text-destructive" // Estilo Destructive
+               onClick={handleLogout} // Chama a função de logout
+             >
+               <LogOut className="h-4 w-4" />
+               Sair
              </Button>
            </div>
          </div>
        </header>
 
+      {/* Main Content */}
       <main className="container mx-auto px-4 py-6 space-y-6">
         {/* Exibe erro se a busca de stats falhar */}
         {errorStats && (
@@ -180,10 +194,8 @@ const Dashboard = () => {
             </Card>
           </TabsContent>
 
-          {/* Aba: Upload */}
+          {/* Outras Abas */}
            <TabsContent value="upload"><UploadArea /></TabsContent>
-
-           {/* Aba: Alertas */}
            <TabsContent value="alerts">
               <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
                 <CardHeader>
@@ -191,13 +203,10 @@ const Dashboard = () => {
                   <CardDescription>Lista completa de alertas detectados</CardDescription>
                 </CardHeader>
                 <CardContent>
-                   {/* Tabela de alertas completa */}
                   <AlertsTable />
                 </CardContent>
               </Card>
            </TabsContent>
-
-           {/* Aba: Análises */}
            <TabsContent value="analyses" className="space-y-4">
              <HashSearch />
              <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
@@ -210,14 +219,8 @@ const Dashboard = () => {
                </CardContent>
              </Card>
            </TabsContent>
-
-           {/* Aba: Usuários */}
            <TabsContent value="users"><UsersManagement /></TabsContent>
-
-           {/* Aba: Regras */}
            <TabsContent value="rules"><CustomRules /></TabsContent>
-
-           {/* Aba: Configurações */}
            <TabsContent value="settings"><SettingsManagement /></TabsContent>
 
         </Tabs>

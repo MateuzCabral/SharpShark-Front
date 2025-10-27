@@ -9,7 +9,7 @@ const api = axios.create({
   },
 });
 
-// Interceptor para adicionar o token JWT (já presente)
+// Interceptor para adicionar o token JWT
 api.interceptors.request.use(
   async (config) => {
     const token = localStorage.getItem("token");
@@ -21,23 +21,32 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Interceptor para tratamento básico de erros (opcional, mas recomendado)
+// Interceptor para tratamento de erros de resposta
 api.interceptors.response.use(
   (response) => response, // Retorna a resposta se for sucesso
   (error) => {
-    // Se for erro de autenticação (401) ou permissão (403), desloga e redireciona
-    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-      console.warn(`Auth error (${error.response.status}), logging out.`);
-      localStorage.removeItem("token");
-      // Redireciona para login (evita ficar em loop se já estiver no login)
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login';
+    // Apenas loga o erro aqui. O tratamento (incluindo redirect 401)
+    // será feito onde a chamada da API foi feita ou em um wrapper global.
+    if (error.response) {
+      console.error(`API Error ${error.response.status}:`, error.response.data);
+      if (error.response.status === 401) {
+          // Apenas limpa o token se não autorizado
+          localStorage.removeItem("token");
+          // Idealmente, um AuthContext ouviria essa mudança e redirecionaria.
+          // Por simplicidade agora, o ProtectedRoute fará o redirect na próxima renderização.
+          console.warn("Unauthorized (401). Token removed.");
+          // Removido: window.location.href = '/login';
+          // Força um reload para o ProtectedRoute fazer o redirect
+          if (window.location.pathname !== '/login') {
+             window.location.reload();
+          }
       }
+    } else {
+       console.error("Network or other error:", error.message);
     }
-    // Rejeita a promessa para que o erro possa ser tratado no componente
+    // Rejeita a promessa para que o erro possa ser tratado no componente/hook
     return Promise.reject(error);
   }
 );
-
 
 export default api;

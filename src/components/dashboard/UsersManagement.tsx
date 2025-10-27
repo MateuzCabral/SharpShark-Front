@@ -20,8 +20,10 @@ import {
   PaginationPrevious,
   PaginationEllipsis
 } from "@/components/ui/pagination"; // Integração
+import { AccessDeniedMessage } from "@/components/AccessDeniedMessage"; // Importar
+import { AxiosError } from "axios"; // Importar AxiosError para checar status
 
-// Mapeamento de UserRead para a interface interna (simplificado)
+// Interface para exibição, mapeada de UserRead
 interface UserDisplay extends UserRead {
   role: "admin" | "user";
   status: "active" | "inactive";
@@ -39,7 +41,7 @@ export const UsersManagement = () => {
   const itemsPerPage = 10;
 
   // Integração: Fetch users com React Query
-  const { data, isLoading, error, isFetching } = useQuery({
+  const { data, isLoading, error, isFetching, isError } = useQuery({ // Adicionado isError
     queryKey: ['users', currentPage, itemsPerPage],
     queryFn: () => getUsers(currentPage, itemsPerPage),
     placeholderData: (previousData) => previousData,
@@ -52,7 +54,15 @@ export const UsersManagement = () => {
         status: user.is_active ? 'active' : 'inactive',
         created_at_display: user.created_at ? new Date(user.created_at).toLocaleDateString("pt-BR") : 'N/A' // Ajustar se backend incluir created_at
       }))
-    })
+    }),
+    retry: (failureCount, error) => { // Não retenta em erro 403
+        if (error instanceof AxiosError && error.response?.status === 403) {
+            console.log("Access Denied (403) for users, not retrying.");
+            return false;
+        }
+        // Retenta 3 vezes para outros erros
+        return failureCount < 3;
+    }
   });
 
   const users = data?.items ?? [];
@@ -179,83 +189,89 @@ export const UsersManagement = () => {
        user.id.toLowerCase().includes(searchTerm.toLowerCase())
    );
 
-  // Loading e Erro
-  if (isLoading && !data) {
+  // --- TRATAMENTO DE ESTADOS ---
+
+  // Estado de Loading Inicial
+  if (isLoading && !isError) { // Só mostra loading se não houver erro ainda
     return <Card><CardContent className="flex justify-center items-center h-60"><Loader2 className="h-8 w-8 animate-spin text-primary" /><span className="ml-2">Carregando usuários...</span></CardContent></Card>;
   }
-  if (error) {
-     return <Card><CardContent className="flex justify-center items-center h-60 text-destructive"><AlertCircle className="h-8 w-8 mr-2" /><span>Falha ao carregar usuários.</span></CardContent></Card>;
+
+  // Estado de Erro 403 (Acesso Negado)
+  if (isError && error instanceof AxiosError && error.response?.status === 403) {
+    return <AccessDeniedMessage resourceName="o gerenciamento de usuários" />;
   }
 
+  // Estado de Outro Erro
+  if (isError && !(error instanceof AxiosError && error.response?.status === 403)) {
+     console.error("Erro ao buscar usuários:", error);
+     return <Card><CardContent className="flex justify-center items-center h-60 text-destructive"><AlertCircle className="h-8 w-8 mr-2" /><span>Falha ao carregar usuários. Tente atualizar.</span></CardContent></Card>;
+  }
 
+  // --- RENDERIZAÇÃO NORMAL ---
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-             <Users className="h-5 w-5 text-primary" />
-             <div>
-               <CardTitle>Gerenciamento de Usuários</CardTitle>
-               <CardDescription>Criar, editar, visualizar e remover usuários</CardDescription>
-             </div>
-          </div>
-          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <UserPlus className="mr-2 h-4 w-4" />
-                Novo Usuário
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              {/* ... Conteúdo do Dialog de Criação ... */}
-              <DialogHeader>
-                 <DialogTitle>Criar Novo Usuário</DialogTitle>
-                 <DialogDescription>Adicione um novo usuário ao sistema</DialogDescription>
-              </DialogHeader>
-               <div className="space-y-4 py-4">
-                 <div className="space-y-2">
-                   <Label htmlFor="create-name">Nome *</Label>
-                   <Input id="create-name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Nome completo" required />
-                 </div>
-                 <div className="space-y-2">
-                   <Label htmlFor="create-password">Senha *</Label>
-                   <Input id="create-password" type="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} placeholder="Mínimo 8 caracteres" required />
-                 </div>
-                 <div className="space-y-2">
-                   <Label htmlFor="create-role">Função</Label>
-                   <select id="create-role" className="input-like-select" value={formData.is_superuser ? 'admin' : 'user'} onChange={(e) => setFormData({ ...formData, is_superuser: e.target.value === 'admin' })}>
-                     <option value="user">Usuário</option>
-                     <option value="admin">Administrador</option>
-                   </select>
-                 </div>
-                 {/* Campo 'is_active' geralmente não é definido na criação, padrão é true */}
-               </div>
-              <DialogFooter>
-                 <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancelar</Button>
-                 <Button onClick={handleCreate} disabled={createUserMutation.isPending}>
-                   {createUserMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                   Criar
-                 </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
+         <div className="flex items-center justify-between">
+           <div className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-primary" />
+              <div>
+                <CardTitle>Gerenciamento de Usuários</CardTitle>
+                <CardDescription>Criar, editar, visualizar e remover usuários</CardDescription>
+              </div>
+           </div>
+           {/* Botão Novo Usuário e Dialog */}
+           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+              <DialogTrigger asChild><Button><UserPlus className="mr-2 h-4 w-4" /> Novo Usuário</Button></DialogTrigger>
+              <DialogContent>
+                 <DialogHeader>
+                    <DialogTitle>Criar Novo Usuário</DialogTitle>
+                    <DialogDescription>Adicione um novo usuário ao sistema</DialogDescription>
+                 </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="create-name">Nome *</Label>
+                      <Input id="create-name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Nome completo" required />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="create-password">Senha *</Label>
+                      <Input id="create-password" type="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} placeholder="Mínimo 8 caracteres" required />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="create-role">Função</Label>
+                      <select id="create-role" className="input-like-select" value={formData.is_superuser ? 'admin' : 'user'} onChange={(e) => setFormData({ ...formData, is_superuser: e.target.value === 'admin' })}>
+                        <option value="user">Usuário</option>
+                        <option value="admin">Administrador</option>
+                      </select>
+                    </div>
+                  </div>
+                 <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancelar</Button>
+                    <Button onClick={handleCreate} disabled={createUserMutation.isPending}>
+                      {createUserMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Criar
+                    </Button>
+                 </DialogFooter>
+              </DialogContent>
+           </Dialog>
+         </div>
       </CardHeader>
       <CardContent>
+        {/* Input de Busca */}
         <div className="mb-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por nome ou ID..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9"
-            />
-          </div>
+           <div className="relative">
+             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+             <Input
+               placeholder="Buscar por nome ou ID..."
+               value={searchTerm}
+               onChange={(e) => setSearchTerm(e.target.value)}
+               className="pl-9"
+             />
+           </div>
         </div>
 
+        {/* Tabela */}
         <div className="rounded-md border relative">
-          {isFetching && ( // Indicador de refresh
+          {isFetching && !isLoading && ( // Indicador Fetching (exceto no loading inicial)
               <div className="absolute inset-0 bg-background/50 flex justify-center items-center z-10">
                   <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>
@@ -263,12 +279,11 @@ export const UsersManagement = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                {/* Ajustar colunas conforme UserRead */}
-                <TableHead>ID</TableHead>
+                <TableHead className="w-[120px]">ID</TableHead>
                 <TableHead>Nome</TableHead>
                 <TableHead>Função</TableHead>
                 <TableHead>Status</TableHead>
-                {/* <TableHead>Criado em</TableHead> */} {/* Adicionar se backend incluir */}
+                {/* <TableHead>Criado em</TableHead> */}
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -276,36 +291,36 @@ export const UsersManagement = () => {
               {filteredUsers.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center text-muted-foreground h-24">
-                    {isLoading ? "Carregando..." : "Nenhum usuário encontrado"}
+                     {searchTerm ? 'Nenhum usuário encontrado para "' + searchTerm + '"' : 'Nenhum usuário cadastrado'}
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredUsers.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell className="font-mono text-xs w-[100px] truncate" title={user.id}>{user.id.substring(0,8)}...</TableCell>
-                    <TableCell className="font-medium">{user.name}</TableCell>
-                    <TableCell>
-                      <Badge variant={user.role === "admin" ? "default" : "secondary"}>
-                        {user.role === "admin" ? "Admin" : "Usuário"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={user.status === "active" ? "default" : "outline"}>
-                        {user.status === "active" ? "Ativo" : "Inativo"}
-                      </Badge>
-                    </TableCell>
-                    {/* <TableCell>{user.created_at_display || "-"}</TableCell> */}
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => openEditDialog(user)} disabled={updateUserMutation.isPending || deleteUserMutation.isPending}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(user)} disabled={updateUserMutation.isPending || deleteUserMutation.isPending}>
-                           {deleteUserMutation.isPending && deleteUserMutation.variables === user.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4 text-destructive" />}
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                   <TableRow key={user.id}>
+                     <TableCell className="font-mono text-xs truncate" title={user.id}>{user.id.substring(0,8)}...</TableCell>
+                     <TableCell className="font-medium">{user.name}</TableCell>
+                     <TableCell>
+                       <Badge variant={user.role === "admin" ? "default" : "secondary"}>
+                         {user.role === "admin" ? "Admin" : "Usuário"}
+                       </Badge>
+                     </TableCell>
+                     <TableCell>
+                       <Badge variant={user.status === "active" ? "default" : "outline"}>
+                         {user.status === "active" ? "Ativo" : "Inativo"}
+                       </Badge>
+                     </TableCell>
+                     {/* <TableCell>{user.created_at_display || "-"}</TableCell> */}
+                     <TableCell className="text-right">
+                       <div className="flex justify-end gap-1">
+                         <Button variant="ghost" size="icon" onClick={() => openEditDialog(user)} disabled={updateUserMutation.isPending || deleteUserMutation.isPending}>
+                           <Pencil className="h-4 w-4" />
+                         </Button>
+                         <Button variant="ghost" size="icon" onClick={() => handleDelete(user)} disabled={updateUserMutation.isPending || deleteUserMutation.isPending || deleteUserMutation.variables === user.id}>
+                            {deleteUserMutation.isPending && deleteUserMutation.variables === user.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4 text-destructive" />}
+                         </Button>
+                       </div>
+                     </TableCell>
+                   </TableRow>
                 ))
               )}
             </TableBody>
@@ -314,95 +329,98 @@ export const UsersManagement = () => {
 
         {/* Paginação */}
         {totalPages > 1 && (
-           <div className="mt-4">
+            <div className="mt-4 flex flex-col items-center gap-2">
               <Pagination>
                 <PaginationContent>
                   <PaginationItem>
-                    <PaginationPrevious href="#" onClick={(e) => { e.preventDefault(); handlePageChange(currentPage - 1); }} className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}/>
+                    <PaginationPrevious href="#" onClick={(e) => { e.preventDefault(); handlePageChange(currentPage - 1); }} aria-disabled={currentPage === 1} className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}/>
                   </PaginationItem>
-                  {[...Array(totalPages)].map((_, i) => {
-                       const pageNum = i + 1;
-                       if (pageNum === 1 || pageNum === totalPages || Math.abs(pageNum - currentPage) <= 1) {
-                          return <PaginationItem key={pageNum}><PaginationLink href="#" onClick={(e) => { e.preventDefault(); handlePageChange(pageNum); }} isActive={currentPage === pageNum}>{pageNum}</PaginationLink></PaginationItem>;
-                       } else if (Math.abs(pageNum - currentPage) === 2) {
-                          return <PaginationItem key={`ellipsis-${pageNum}`}><PaginationEllipsis /></PaginationItem>;
-                       }
-                       return null;
-                  })}
+                   {(() => {
+                     const pageNumbers = [];
+                     const maxPagesToShow = 5;
+                     const halfMax = Math.floor(maxPagesToShow / 2);
+                     if (totalPages <= maxPagesToShow + 2) {
+                        for (let i = 1; i <= totalPages; i++) pageNumbers.push(i);
+                     } else {
+                        pageNumbers.push(1);
+                        let startPage = Math.max(2, currentPage - halfMax);
+                        let endPage = Math.min(totalPages - 1, currentPage + halfMax);
+                        if (currentPage <= halfMax + 1) endPage = maxPagesToShow + 1;
+                        if (currentPage >= totalPages - halfMax) startPage = totalPages - maxPagesToShow;
+                        if (startPage > 2) pageNumbers.push(-1);
+                        for (let i = startPage; i <= endPage; i++) pageNumbers.push(i);
+                        if (endPage < totalPages - 1) pageNumbers.push(-1);
+                        pageNumbers.push(totalPages);
+                     }
+                     return pageNumbers.map((pageNum, index) => (
+                        pageNum === -1 ? (
+                           <PaginationItem key={`ellipsis-${index}`}><PaginationEllipsis /></PaginationItem>
+                        ) : (
+                           <PaginationItem key={pageNum}><PaginationLink href="#" onClick={(e) => { e.preventDefault(); handlePageChange(pageNum); }} isActive={currentPage === pageNum} aria-current={currentPage === pageNum ? "page" : undefined}>{pageNum}</PaginationLink></PaginationItem>
+                        )
+                     ));
+                   })()}
                   <PaginationItem>
-                    <PaginationNext href="#" onClick={(e) => { e.preventDefault(); handlePageChange(currentPage + 1); }} className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}/>
+                    <PaginationNext href="#" onClick={(e) => { e.preventDefault(); handlePageChange(currentPage + 1); }} aria-disabled={currentPage === totalPages} className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}/>
                   </PaginationItem>
                 </PaginationContent>
               </Pagination>
-              <p className="text-center text-sm text-muted-foreground mt-2">
-                 Página {currentPage} de {totalPages} ({totalItems} usuários)
-              </p>
-           </div>
+               {totalItems > 0 && (
+                 <p className="text-xs text-muted-foreground">
+                    Página {currentPage} de {totalPages} ({totalItems} {totalItems === 1 ? 'usuário' : 'usuários'} no total)
+                 </p>
+               )}
+            </div>
         )}
 
         {/* Dialog de Edição */}
         <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-          <DialogContent>
-             <DialogHeader>
-               <DialogTitle>Editar Usuário</DialogTitle>
-               <DialogDescription>Atualize as informações de {selectedUser?.name}</DialogDescription>
-             </DialogHeader>
-             <div className="space-y-4 py-4">
-                 <div className="space-y-2">
-                   <Label htmlFor="edit-name">Nome</Label>
-                   <Input id="edit-name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Nome completo" required />
-                 </div>
-                 <div className="space-y-2">
-                   <Label htmlFor="edit-password">Nova Senha</Label>
-                   <Input id="edit-password" type="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} placeholder="Deixe em branco para manter a atual" />
-                 </div>
-                 <div className="space-y-2">
-                   <Label htmlFor="edit-role">Função</Label>
-                   <select id="edit-role" className="input-like-select" value={formData.is_superuser ? 'admin' : 'user'} onChange={(e) => setFormData({ ...formData, is_superuser: e.target.value === 'admin' })}>
-                     <option value="user">Usuário</option>
-                     <option value="admin">Administrador</option>
-                   </select>
-                 </div>
-                 <div className="space-y-2">
-                    <Label htmlFor="edit-status">Status</Label>
-                    <select id="edit-status" className="input-like-select" value={formData.is_active ? 'active' : 'inactive'} onChange={(e) => setFormData({ ...formData, is_active: e.target.value === 'active' })}>
-                        <option value="active">Ativo</option>
-                        <option value="inactive">Inativo</option>
+           <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Editar Usuário</DialogTitle>
+                <DialogDescription>Atualize as informações de {selectedUser?.name}</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-name">Nome</Label>
+                    <Input id="edit-name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Nome completo" required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-password">Nova Senha</Label>
+                    <Input id="edit-password" type="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} placeholder="Deixe em branco para manter a atual" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-role">Função</Label>
+                    <select id="edit-role" className="input-like-select" value={formData.is_superuser ? 'admin' : 'user'} onChange={(e) => setFormData({ ...formData, is_superuser: e.target.value === 'admin' })}>
+                      <option value="user">Usuário</option>
+                      <option value="admin">Administrador</option>
                     </select>
-                 </div>
-             </div>
-             <DialogFooter>
-               <Button variant="outline" onClick={() => setIsEditOpen(false)}>Cancelar</Button>
-               <Button onClick={handleEdit} disabled={updateUserMutation.isPending}>
-                  {updateUserMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Salvar
-               </Button>
-             </DialogFooter>
-          </DialogContent>
+                  </div>
+                  <div className="space-y-2">
+                     <Label htmlFor="edit-status">Status</Label>
+                     <select id="edit-status" className="input-like-select" value={formData.is_active ? 'active' : 'inactive'} onChange={(e) => setFormData({ ...formData, is_active: e.target.value === 'active' })}>
+                         <option value="active">Ativo</option>
+                         <option value="inactive">Inativo</option>
+                     </select>
+                  </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsEditOpen(false)}>Cancelar</Button>
+                <Button onClick={handleEdit} disabled={updateUserMutation.isPending}>
+                   {updateUserMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                   Salvar
+                </Button>
+              </DialogFooter>
+           </DialogContent>
         </Dialog>
       </CardContent>
 
-      {/* Estilo para <select> parecer com <Input> */}
-       <style jsx global>{`
+      {/* Estilo Select */}
+      <style jsx global>{`
          .input-like-select {
-             display: flex;
-             height: 2.5rem; /* h-10 */
-             width: 100%;
-             border-radius: 0.375rem; /* rounded-md */
-             border: 1px solid hsl(var(--input));
-             background-color: hsl(var(--background));
-             padding-left: 0.75rem; /* px-3 */
-             padding-right: 0.75rem; /* px-3 */
-             padding-top: 0.5rem; /* py-2 */
-             padding-bottom: 0.5rem; /* py-2 */
-             font-size: 0.875rem; /* text-sm */
-             line-height: 1.25rem;
-             outline: none; /* focus-visible:outline-none */
+             display: flex; height: 2.5rem; width: 100%; border-radius: 0.375rem; border: 1px solid hsl(var(--input)); background-color: hsl(var(--background)); padding-left: 0.75rem; padding-right: 2.5rem; padding-top: 0.5rem; padding-bottom: 0.5rem; font-size: 0.875rem; line-height: 1.25rem; outline: none; appearance: none; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); background-position: right 0.5rem center; background-repeat: no-repeat; background-size: 1.5em 1.5em;
          }
-         .input-like-select:focus {
-              outline: 2px solid hsl(var(--ring));
-              outline-offset: 2px;
-         }
+         .input-like-select:focus { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; border-color: hsl(var(--ring)); }
         `}</style>
     </Card>
   );

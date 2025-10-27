@@ -8,18 +8,27 @@ import { Label } from "@/components/ui/label";
 import { toast as sonnerToast } from "sonner"; // Usando sonner
 import { Settings, FolderOpen, Save, Loader2, AlertCircle } from "lucide-react";
 import { getSettings, updateSettings, SettingsResponse, SettingUpdate } from "@/api/settings"; // Integração
+import { AccessDeniedMessage } from "@/components/AccessDeniedMessage"; // Importar
+import { AxiosError } from "axios"; // Importar
 
 export const SettingsManagement = () => {
   const queryClient = useQueryClient();
   const [projectName, setProjectName] = useState("");
 
   // Integração: Fetch settings com React Query
-  const { data: settings, isLoading: isLoadingSettings, error: errorSettings } = useQuery({
+  const { data: settings, isLoading: isLoadingSettings, error: errorSettings, isError, isFetching } = useQuery({ // Adicionado isError, isFetching
     queryKey: ['settings'],
     queryFn: getSettings,
     onSuccess: (data) => {
        // Atualiza o estado local do input quando os dados são carregados
        setProjectName(data?.ingest_project_name || "");
+    },
+    retry: (failureCount, error) => { // Não retenta em erro 403
+        if (error instanceof AxiosError && error.response?.status === 403) {
+            console.log("Access Denied (403) for settings, not retrying.");
+            return false;
+        }
+        return failureCount < 3;
     }
   });
 
@@ -42,6 +51,7 @@ export const SettingsManagement = () => {
        },
    });
 
+  // Handler para salvar
   const handleSave = () => {
     const updateData: SettingUpdate = {
        // Envia null se o campo estiver vazio para desativar
@@ -50,17 +60,33 @@ export const SettingsManagement = () => {
     updateSettingsMutation.mutate(updateData);
   };
 
-  // Loading / Erro inicial
-  if (isLoadingSettings) {
+  // --- TRATAMENTO DE ESTADOS ---
+
+  // Loading Inicial
+  if (isLoadingSettings && !isError) {
      return <Card><CardContent className="flex justify-center items-center h-40"><Loader2 className="h-6 w-6 animate-spin text-primary" /><span className="ml-2">Carregando configurações...</span></CardContent></Card>;
   }
-  if (errorSettings) {
+
+  // Erro 403 (Acesso Negado)
+  if (isError && errorSettings instanceof AxiosError && errorSettings.response?.status === 403) {
+     return <AccessDeniedMessage resourceName="as configurações" />;
+  }
+
+  // Outro Erro
+  if (isError && !(errorSettings instanceof AxiosError && errorSettings.response?.status === 403)) {
+      console.error("Erro ao carregar configurações:", errorSettings);
       return <Card><CardContent className="flex justify-center items-center h-40 text-destructive"><AlertCircle className="h-6 w-6 mr-2" /><span>Erro ao carregar configurações.</span></CardContent></Card>;
   }
 
-
+  // --- RENDERIZAÇÃO NORMAL ---
   return (
-    <Card>
+    <Card className="relative">
+      {/* Indicador de Fetching */}
+       {isFetching && !isLoadingSettings && (
+          <div className="absolute inset-0 bg-background/50 flex justify-center items-center z-10 rounded-lg">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+       )}
       <CardHeader>
         <div className="flex items-center gap-2">
           <Settings className="h-5 w-5 text-primary" />
@@ -81,7 +107,7 @@ export const SettingsManagement = () => {
               value={projectName}
               onChange={(e) => setProjectName(e.target.value)}
               placeholder="Deixe vazio para desativar ingestão automática"
-              disabled={updateSettingsMutation.isPending}
+              disabled={updateSettingsMutation.isPending || isFetching}
             />
             <p className="text-xs text-muted-foreground">
               Um nome aqui ativará o monitoramento. O nome será usado para criar a subpasta dentro de {'<uploads>/ingest/'}.
@@ -115,7 +141,7 @@ export const SettingsManagement = () => {
               </p>
             </div>
           )}
-           {!settings?.ingest_project_name && (
+           {!settings?.ingest_project_name && !isLoadingSettings && ( // Mostra só depois de carregar
               <div className="p-3 rounded-md border border-dashed border-amber-500/50 bg-amber-500/10 text-amber-300 text-sm">
                 A ingestão automática está desativada. Preencha o nome do projeto para ativá-la.
               </div>
@@ -123,7 +149,7 @@ export const SettingsManagement = () => {
         </div>
 
         <div className="flex justify-end">
-          <Button onClick={handleSave} disabled={updateSettingsMutation.isPending} className="gap-2">
+          <Button onClick={handleSave} disabled={updateSettingsMutation.isPending || isFetching} className="gap-2">
              {updateSettingsMutation.isPending ? (
                  <Loader2 className="h-4 w-4 animate-spin" />
              ) : (

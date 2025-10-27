@@ -20,6 +20,8 @@ import {
   PaginationPrevious,
   PaginationEllipsis
 } from "@/components/ui/pagination"; // Integração
+import { AccessDeniedMessage } from "@/components/AccessDeniedMessage"; // Importar
+import { AxiosError } from "axios"; // Importar
 
 export const CustomRules = () => {
   const queryClient = useQueryClient();
@@ -35,10 +37,17 @@ export const CustomRules = () => {
   const itemsPerPage = 10;
 
   // Integração: Fetch rules com React Query
-  const { data, isLoading, error, isFetching } = useQuery({
+  const { data, isLoading, error, isFetching, isError } = useQuery({ // Adicionado isError
     queryKey: ['rules', currentPage, itemsPerPage],
     queryFn: () => getRules(currentPage, itemsPerPage),
     placeholderData: (previousData) => previousData,
+    retry: (failureCount, error) => { // Não retenta em erro 403
+        if (error instanceof AxiosError && error.response?.status === 403) {
+            console.log("Access Denied (403) for rules, not retrying.");
+            return false;
+        }
+        return failureCount < 3;
+    }
   });
 
   const rules = data?.items ?? [];
@@ -51,9 +60,36 @@ export const CustomRules = () => {
          queryClient.invalidateQueries({ queryKey: ['rules'] });
       },
       onError: (error: any) => {
-         sonnerToast.error("Operação falhou", {
-           description: error.response?.data?.detail || error.message || "Ocorreu um erro.",
-         });
+         // Verifica se o erro é de validação (422) vindo do Pydantic
+         if (error instanceof AxiosError && error.response?.status === 422 && error.response?.data?.detail) {
+             // Tenta formatar a mensagem de erro de validação
+             try {
+                 const validationErrors = error.response.data.detail;
+                 let errorMsg = "Erro de validação:";
+                 validationErrors.forEach((err: any) => {
+                     // Ajusta para pegar o nome do campo corretamente
+                     const fieldName = err.loc && err.loc.length > 1 ? err.loc[1] : 'Campo';
+                     // Mapeia nomes técnicos para nomes amigáveis (opcional)
+                     const friendlyFieldName = {
+                         name: "Nome da Regra",
+                         rule_type: "Tipo de Regra",
+                         value: "Valor",
+                         alert_type: "Tipo de Alerta",
+                         severity: "Severidade"
+                     }[fieldName] || fieldName;
+                     errorMsg += `\n- ${friendlyFieldName}: ${err.msg}`;
+                 });
+                 sonnerToast.error("Dados Inválidos", { description: <pre className="whitespace-pre-wrap">{errorMsg}</pre> });
+             } catch (_) {
+                 // Fallback se a formatação falhar
+                 sonnerToast.error("Dados Inválidos", { description: JSON.stringify(error.response.data.detail) });
+             }
+         } else {
+             // Erro genérico
+             sonnerToast.error("Operação falhou", {
+                 description: error.response?.data?.detail || error.message || "Ocorreu um erro.",
+             });
+         }
       },
    };
 
@@ -83,20 +119,11 @@ export const CustomRules = () => {
 
   // Handlers
   const handleCreate = () => {
-     // Validações básicas (o backend fará validações mais robustas)
+     // Validações básicas (o backend fará validações mais robustas via Pydantic)
      if (!formData.name || !formData.value || !formData.alert_type) {
        sonnerToast.warning("Campos obrigatórios", { description: "Nome, Valor e Tipo de Alerta são necessários." });
        return;
      }
-     if (formData.rule_type === 'port' && !/^\d+$/.test(formData.value)) {
-        sonnerToast.warning("Valor inválido", { description: "Para tipo 'Porta', o valor deve ser um número." });
-        return;
-     }
-     if (formData.rule_type === 'payload' && formData.value.length < 3) {
-        sonnerToast.warning("Valor curto", { description: "Para tipo 'Payload', o valor deve ter pelo menos 3 caracteres." });
-        return;
-     }
-
     createRuleMutation.mutate(formData);
   };
 
@@ -122,16 +149,33 @@ export const CustomRules = () => {
     }
   };
 
-  // Loading e Erro
-   if (isLoading && !data) {
+  // --- TRATAMENTO DE ESTADOS ---
+
+  // Loading Inicial
+   if (isLoading && !isError) {
     return <Card><CardContent className="flex justify-center items-center h-60"><Loader2 className="h-8 w-8 animate-spin text-primary" /><span className="ml-2">Carregando regras...</span></CardContent></Card>;
   }
-   if (error) {
+
+  // Erro 403 (Acesso Negado)
+  if (isError && error instanceof AxiosError && error.response?.status === 403) {
+     return <AccessDeniedMessage resourceName="as regras customizadas" />;
+  }
+
+  // Outro Erro
+  if (isError && !(error instanceof AxiosError && error.response?.status === 403)) {
+     console.error("Erro ao carregar regras:", error);
      return <Card><CardContent className="flex justify-center items-center h-60 text-destructive"><AlertCircle className="h-8 w-8 mr-2" /><span>Falha ao carregar regras.</span></CardContent></Card>;
   }
 
+  // --- RENDERIZAÇÃO NORMAL ---
   return (
-    <Card>
+    <Card className="relative">
+       {/* Indicador de Fetching */}
+       {isFetching && !isLoading &&(
+          <div className="absolute inset-0 bg-background/50 flex justify-center items-center z-10 rounded-lg">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+       )}
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -151,7 +195,6 @@ export const CustomRules = () => {
               </Button>
             </DialogTrigger>
             <DialogContent>
-              {/* ... Conteúdo Dialog Criação (já estava bom, só ajustar o submit) ... */}
               <DialogHeader>
                  <DialogTitle>Criar Nova Regra</DialogTitle>
                  <DialogDescription>Defina uma nova regra de detecção</DialogDescription>
@@ -170,7 +213,7 @@ export const CustomRules = () => {
                  </div>
                  <div className="space-y-2">
                    <Label htmlFor="rule-value">{formData.rule_type === "payload" ? "String a Procurar *" : "Número da Porta *"}</Label>
-                   <Input id="rule-value" value={formData.value} onChange={(e) => setFormData({ ...formData, value: e.target.value })} placeholder={formData.rule_type === "payload" ? "Ex: <?php" : "Ex: 4444"} required />
+                   <Input id="rule-value" value={formData.value} onChange={(e) => setFormData({ ...formData, value: e.target.value })} placeholder={formData.rule_type === "payload" ? "Ex: <?php (mín 3 chars)" : "Ex: 4444 (1-65535)"} required />
                  </div>
                  <div className="space-y-2">
                    <Label htmlFor="alert-type">Tipo de Alerta Gerado *</Label>
@@ -200,11 +243,7 @@ export const CustomRules = () => {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="rounded-md border relative">
-           {isFetching && ( // Indicador de refresh
-              <div className="absolute inset-0 bg-background/50 flex justify-center items-center z-10">
-                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              </div>
-           )}
+
           <Table>
             <TableHeader>
               <TableRow>
@@ -236,7 +275,6 @@ export const CustomRules = () => {
                     <TableCell className="font-mono text-xs">{rule.alert_type}</TableCell>
                     <TableCell>
                       <Badge variant={getSeverityColor(rule.severity)}>
-                        {/* Capitaliza a primeira letra */}
                         {rule.severity.charAt(0).toUpperCase() + rule.severity.slice(1)}
                       </Badge>
                     </TableCell>
@@ -246,6 +284,7 @@ export const CustomRules = () => {
                         size="icon"
                         onClick={() => handleDelete(rule)}
                         disabled={deleteRuleMutation.isPending && deleteRuleMutation.variables === rule.id}
+                        title={`Remover regra ${rule.name}`}
                       >
                          {deleteRuleMutation.isPending && deleteRuleMutation.variables === rule.id
                             ? <Loader2 className="h-4 w-4 animate-spin"/>
@@ -262,25 +301,36 @@ export const CustomRules = () => {
 
          {/* Paginação */}
         {totalPages > 1 && (
-           <div className="mt-4">
+           <div className="mt-4 flex flex-col items-center gap-2">
               <Pagination>
-                <PaginationContent>
-                   {/* ... controles de paginação ... */}
-                </PaginationContent>
+                 <PaginationContent>
+                    <PaginationItem>
+                       <PaginationPrevious href="#" onClick={(e) => { e.preventDefault(); handlePageChange(currentPage - 1); }} aria-disabled={currentPage === 1} className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}/>
+                    </PaginationItem>
+                     {(() => {
+                        const pageNumbers = []; const maxPagesToShow = 5; const halfMax = Math.floor(maxPagesToShow / 2);
+                        if (totalPages <= maxPagesToShow + 2) { for (let i = 1; i <= totalPages; i++) pageNumbers.push(i); } else {
+                           pageNumbers.push(1); let startPage = Math.max(2, currentPage - halfMax); let endPage = Math.min(totalPages - 1, currentPage + halfMax);
+                           if (currentPage <= halfMax + 1) endPage = maxPagesToShow + 1; if (currentPage >= totalPages - halfMax) startPage = totalPages - maxPagesToShow;
+                           if (startPage > 2) pageNumbers.push(-1); for (let i = startPage; i <= endPage; i++) pageNumbers.push(i);
+                           if (endPage < totalPages - 1) pageNumbers.push(-1); pageNumbers.push(totalPages);
+                        }
+                        return pageNumbers.map((pageNum, index) => ( pageNum === -1 ? (<PaginationItem key={`ellipsis-${index}`}><PaginationEllipsis /></PaginationItem>) : (<PaginationItem key={pageNum}><PaginationLink href="#" onClick={(e) => { e.preventDefault(); handlePageChange(pageNum); }} isActive={currentPage === pageNum} aria-current={currentPage === pageNum ? "page" : undefined}>{pageNum}</PaginationLink></PaginationItem>) ));
+                     })()}
+                    <PaginationItem>
+                       <PaginationNext href="#" onClick={(e) => { e.preventDefault(); handlePageChange(currentPage + 1); }} aria-disabled={currentPage === totalPages} className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}/>
+                    </PaginationItem>
+                 </PaginationContent>
               </Pagination>
-              <p className="text-center text-sm text-muted-foreground mt-2">
-                 Página {currentPage} de {totalPages} ({totalItems} regras)
-              </p>
+              {totalItems > 0 && ( <p className="text-xs text-muted-foreground"> Página {currentPage} de {totalPages} ({totalItems} {totalItems === 1 ? 'regra' : 'regras'} no total) </p> )}
            </div>
         )}
       </CardContent>
 
-       {/* Estilo para <select> parecer com <Input> */}
+       {/* Estilo Select */}
        <style jsx global>{`
-         .input-like-select {
-             display: flex; height: 2.5rem; width: 100%; border-radius: 0.375rem; border: 1px solid hsl(var(--input)); background-color: hsl(var(--background)); padding-left: 0.75rem; padding-right: 0.75rem; padding-top: 0.5rem; padding-bottom: 0.5rem; font-size: 0.875rem; line-height: 1.25rem; outline: none;
-         }
-         .input-like-select:focus { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
+         .input-like-select { display: flex; height: 2.5rem; width: 100%; border-radius: 0.375rem; border: 1px solid hsl(var(--input)); background-color: hsl(var(--background)); padding-left: 0.75rem; padding-right: 2.5rem; padding-top: 0.5rem; padding-bottom: 0.5rem; font-size: 0.875rem; line-height: 1.25rem; outline: none; appearance: none; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); background-position: right 0.5rem center; background-repeat: no-repeat; background-size: 1.5em 1.5em; }
+         .input-like-select:focus { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; border-color: hsl(var(--ring)); }
         `}</style>
     </Card>
   );
