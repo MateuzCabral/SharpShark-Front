@@ -18,11 +18,12 @@ import { StatsCard } from "@/components/dashboard/StatsCard";
 import { TrafficChart } from "@/components/dashboard/TrafficChart";
 import { AlertsTable } from "@/components/dashboard/AlertsTable";
 import { AnalysesTable } from "@/components/dashboard/AnalysesTable";
-import { GeoMap } from "@/components/dashboard/GeoMap";
 import { ProtocolDistribution } from "@/components/dashboard/ProtocolDistribution";
 import { UploadArea } from "@/components/dashboard/UploadArea";
 import { HashSearch } from "@/components/dashboard/HashSearch";
 import { UsersManagement } from "@/components/dashboard/UsersManagement";
+import { SettingsManagement } from "@/components/dashboard/SettingsManagement";
+import { CustomRules } from "@/components/dashboard/CustomRules";
 
 const Dashboard = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -106,8 +107,9 @@ const Dashboard = () => {
             <TabsTrigger value="upload">Upload</TabsTrigger>
             <TabsTrigger value="alerts">Alertas</TabsTrigger>
             <TabsTrigger value="analyses">Análises</TabsTrigger>
-            <TabsTrigger value="geoip">GeoIP</TabsTrigger>
             <TabsTrigger value="users">Usuários</TabsTrigger>
+            <TabsTrigger value="rules">Regras</TabsTrigger>
+            <TabsTrigger value="settings">Configurações</TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
@@ -186,6 +188,7 @@ const Dashboard = () => {
           {/* Analyses Tab */}
           <TabsContent value="analyses" className="space-y-4">
             <HashSearch />
+            
             <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -202,27 +205,19 @@ const Dashboard = () => {
             </Card>
           </TabsContent>
 
-          {/* GeoIP Tab */}
-          <TabsContent value="geoip">
-            <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Globe className="h-5 w-5 text-primary" />
-                  Mapa de Origem de Tráfego
-                </CardTitle>
-                <CardDescription>
-                  Localização geográfica dos IPs detectados
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <GeoMap />
-              </CardContent>
-            </Card>
-          </TabsContent>
-
           {/* Users Tab */}
           <TabsContent value="users">
             <UsersManagement />
+          </TabsContent>
+
+          {/* Rules Tab */}
+          <TabsContent value="rules">
+            <CustomRules />
+          </TabsContent>
+
+          {/* Settings Tab */}
+          <TabsContent value="settings">
+            <SettingsManagement />
           </TabsContent>
         </Tabs>
       </main>
