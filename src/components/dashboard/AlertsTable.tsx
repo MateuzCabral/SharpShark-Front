@@ -12,7 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Eye, Loader2, AlertCircle } from "lucide-react";
-import { getAlerts, AlertRead, getAnalysisAlerts } from "@/api/alerts"; // Integração: Adicionado getAnalysisAlerts
+import { getAlerts, AlertRead, getAnalysisAlerts } from "@/api/alerts"; // Mantendo o import original
 import {
   Pagination,
   PaginationContent,
@@ -51,7 +51,7 @@ export const AlertsTable = ({ limit, analysisId }: AlertsTableProps) => {
         console.log(`Fetching alerts for analysis ${analysisId}, page ${currentPage}`);
         return getAnalysisAlerts(analysisId, currentPage, itemsPerPage);
       } else {
-         // Busca alertas gerais (API simula paginação no frontend)
+         // Busca alertas gerais (agora paginado pelo backend)
          console.log(`Fetching general alerts, page ${currentPage}`);
          return getAlerts(currentPage, itemsPerPage);
       }
@@ -114,8 +114,6 @@ export const AlertsTable = ({ limit, analysisId }: AlertsTableProps) => {
         <AlertCircle className="h-8 w-8 mb-2" />
         <span className="font-medium">Falha ao carregar alertas</span>
         <span className="text-sm">Por favor, tente atualizar a página.</span>
-        {/* Opcional: Mostrar detalhes do erro */}
-        {/* <pre className="text-xs mt-2">{error.message}</pre> */}
       </div>
     );
   }
@@ -141,7 +139,6 @@ export const AlertsTable = ({ limit, analysisId }: AlertsTableProps) => {
               <TableHead>IP Destino</TableHead>
               <TableHead>Porta</TableHead>
               <TableHead>Protocolo</TableHead>
-              {/* <TableHead>Data/Hora</TableHead> */} {/* Descomentar se timestamp for adicionado */}
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -169,9 +166,6 @@ export const AlertsTable = ({ limit, analysisId }: AlertsTableProps) => {
                   <TableCell className="font-mono text-sm">{alert.dst_ip || "-"}</TableCell>
                   <TableCell>{alert.port ?? "-"}</TableCell>
                   <TableCell>{alert.protocol || "-"}</TableCell>
-                  {/* <TableCell className="text-muted-foreground text-sm">
-                    {alert.timestamp ? new Date(alert.timestamp).toLocaleString("pt-BR") : "-"}
-                  </TableCell> */}
                   <TableCell className="text-right">
                     {/* Botão para ver detalhes */}
                     <Button variant="ghost" size="icon" onClick={() => handleViewDetails(alert)} title="Ver Detalhes">
@@ -184,6 +178,8 @@ export const AlertsTable = ({ limit, analysisId }: AlertsTableProps) => {
           </TableBody>
         </Table>
       </div>
+
+       {/* --- INÍCIO DA ALTERAÇÃO --- */}
 
        {/* Controles de Paginação (só aparecem se não for limitado e houver mais de 1 página) */}
        {!limit && totalPages > 1 && (
@@ -250,13 +246,18 @@ export const AlertsTable = ({ limit, analysisId }: AlertsTableProps) => {
                  </PaginationItem>
              </PaginationContent>
              </Pagination>
-             {totalItems > 0 && (
-                <p className="text-xs text-muted-foreground">
-                    Página {currentPage} de {totalPages} ({totalItems} {totalItems === 1 ? 'alerta' : 'alertas'} no total)
-                </p>
-             )}
          </div>
        )}
+
+       {/* Sumário de Paginação (separado) - Padrão AnalysesTable */}
+       {!limit && totalItems > 0 && (
+          <p className="text-center text-sm text-muted-foreground">
+              Mostrando {alerts.length} de {totalItems} {totalItems === 1 ? 'alerta' : 'alertas'}. Página {currentPage} de {totalPages}.
+          </p>
+       )}
+
+       {/* --- FIM DA ALTERAÇÃO --- */}
+
        {/* Caso limite seja usado e haja mais itens do que o limite */}
        {limit && totalItems > limit && (
            <p className="text-center text-sm text-muted-foreground">
