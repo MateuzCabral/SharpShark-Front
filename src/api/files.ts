@@ -1,19 +1,17 @@
 // src/api/files.ts
 import api from "./axios";
-import { PaginatedResponse } from "./analyses"; // Reutiliza interface de paginação
+import { PaginatedResponse } from "./analyses"; 
 
-// Interface para FileRead (baseada no schema Pydantic)
 export interface FileRead {
   id: string;
   file_name: string;
-  file_path: string; // Caminho no servidor
-  file_size: number; // Assumindo MB
+  file_path: string; 
+  file_size: number; 
   file_hash: string;
-  uploaded_at: string; // Formato ISO 8601 string
+  uploaded_at: string; 
   user_id: string;
 }
 
-// Upload (POST /files/upload)
 export const uploadFile = async (file: File): Promise<FileRead> => {
   const formData = new FormData();
   formData.append("file", file);
@@ -24,11 +22,10 @@ export const uploadFile = async (file: File): Promise<FileRead> => {
     return response.data;
   } catch (error) {
     console.error("Erro ao fazer upload:", error);
-    throw error; // Relança para tratamento no componente
+    throw error; 
   }
 };
 
-// Buscar Arquivos com Paginação (GET /files/)
 export const getFiles = async (page = 1, size = 10): Promise<PaginatedResponse<FileRead>> => {
   try {
     const response = await api.get<PaginatedResponse<FileRead>>("/files/", {
@@ -36,7 +33,6 @@ export const getFiles = async (page = 1, size = 10): Promise<PaginatedResponse<F
     });
     return response.data;
   } catch (error: any) {
-    // Trata 404 como lista vazia, pois o backend pode retornar 404 se não houver ficheiros
     if (error.response && error.response.status === 404) {
        console.warn("API /files/ retornou 404, tratando como lista vazia.");
        return { items: [], total: 0, page: 1, size: size, pages: 0 };
@@ -46,7 +42,6 @@ export const getFiles = async (page = 1, size = 10): Promise<PaginatedResponse<F
   }
 };
 
-// Buscar Arquivo por Hash (GET /files/hash/{hash})
 export const getFileByHash = async (fileHash: string): Promise<FileRead> => {
   try {
     const response = await api.get<FileRead>(`/files/hash/${fileHash}`);
@@ -57,19 +52,16 @@ export const getFileByHash = async (fileHash: string): Promise<FileRead> => {
   }
 };
 
-// Buscar Arquivo por ID (GET /files/{id})
 export const getFileById = async (fileId: string): Promise<FileRead> => {
-   try {
-    const response = await api.get<FileRead>(`/files/${fileId}`);
-    return response.data;
-   } catch (error) {
-      console.error(`Erro ao buscar arquivo por ID ${fileId}:`, error);
-      throw error;
-   }
+    try {
+     const response = await api.get<FileRead>(`/files/${fileId}`);
+     return response.data;
+    } catch (error) {
+       console.error(`Erro ao buscar arquivo por ID ${fileId}:`, error);
+       throw error;
+    }
 };
 
-
-// Deletar Arquivo por ID (DELETE /files/{id})
 export const deleteFileById = async (fileId: string): Promise<void> => {
   try {
     await api.delete(`/files/${fileId}`);
@@ -78,3 +70,37 @@ export const deleteFileById = async (fileId: string): Promise<void> => {
      throw error;
   }
 };
+
+// --- INÍCIO DA ALTERAÇÃO ---
+// 1. Reverter para a função de download de 'blob' (assíncrona)
+export const downloadPcapFile = async (fileId: string, fileName: string): Promise<void> => {
+  try {
+    // Faz a requisição autenticada (interceptor do axios) esperando um 'blob'
+    const response = await api.get(`/files/${fileId}/download`, {
+      responseType: 'blob',
+    });
+
+    // Cria uma URL de objeto para o blob recebido
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    
+    // Cria um link <a> invisível
+    const link = document.createElement('a');
+    link.href = url;
+    
+    // Define o nome do arquivo para o download
+    link.setAttribute('download', fileName);
+    
+    // Adiciona, clica e remove o link
+    document.body.appendChild(link);
+    link.click();
+    
+    // Limpa a URL do objeto
+    link.remove();
+    window.URL.revokeObjectURL(url);
+
+  } catch (error) {
+    console.error(`Erro ao baixar o arquivo ${fileId}:`, error);
+    throw error; // Relança para o componente (para mostrar o toast de erro)
+  }
+};
+// --- FIM DA ALTERAÇÃO ---

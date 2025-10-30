@@ -1,6 +1,20 @@
 // src/componentes/dashboard/AlertsTable.tsx
 import { useState } from "react";
+// --- INÍCIO DA ALTERAÇÃO ---
 import { useQuery } from "@tanstack/react-query";
+// 1. Importar componentes de Dialog, ScrollArea, e Skeleton (em vez de Textarea)
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose,
+} from "../../components/ui/dialog";
+import { ScrollArea } from "../../components/ui/scroll-area";
+import { Skeleton } from "../../components/ui/skeleton";
+// --- FIM DA ALTERAÇÃO ---
 import {
   Table,
   TableBody,
@@ -8,11 +22,15 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+} from "../../components/ui/table";
+import { Badge } from "../../components/ui/badge";
+import { Button } from "../../components/ui/button";
 import { Eye, Loader2, AlertCircle } from "lucide-react";
-import { getAlerts, AlertRead, getAnalysisAlerts } from "@/api/alerts"; // Mantendo o import original
+// --- INÍCIO DA ALTERAÇÃO ---
+// 2. Importar getStreamContent (e corrigir caminho)
+import { getAlerts, AlertRead, getAnalysisAlerts } from "../../api/alerts"; 
+import { getStreamContent } from "../../api/analyses"; 
+// --- FIM DA ALTERAÇÃO ---
 import {
   Pagination,
   PaginationContent,
@@ -21,82 +39,118 @@ import {
   PaginationNext,
   PaginationPrevious,
   PaginationEllipsis
-} from "@/components/ui/pagination"; // Integração: Importar paginação
+} from "../../components/ui/pagination"; 
 
 interface AlertsTableProps {
   limit?: number; // Para exibição limitada (ex: Overview)
   analysisId?: string; // Para buscar alertas de uma análise específica
 }
 
-// Mapeamento de severidade para variantes do Badge (ajustado visualmente)
+// Mapeamento de severidade
 const severityColors: Record<string, "destructive" | "default" | "secondary" | "outline"> = {
   critical: "destructive",
-  high: "destructive", // Ambas vermelhas
-  medium: "default",   // Azul (padrão Shadcn)
-  low: "secondary",    // Cinza
+  high: "destructive",
+  medium: "default",
+  low: "secondary",
 };
+
+// --- INÍCIO DA ALTERAÇÃO ---
+/**
+ * Componente interno para buscar e exibir o conteúdo do stream
+ */
+const StreamContent = ({ streamId }: { streamId: string }) => {
+  const { data, isLoading, isError, error } = useQuery({
+    queryKey: ['streamContent', streamId], // Chave única por stream
+    queryFn: () => getStreamContent(streamId), // Função da API
+    enabled: !!streamId, // Só executa se streamId existir
+    staleTime: 5 * 60 * 1000, // Cache de 5 minutos
+    retry: 1, // Tenta 1 vez
+  });
+
+  if (isLoading) {
+    return (
+      <div className="mt-4 space-y-2">
+        <p className="text-sm font-medium text-muted-foreground">Carregando conteúdo do stream...</p>
+        <Skeleton className="h-32 w-full" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    let errorMessage = "Falha ao carregar o conteúdo do stream.";
+    // @ts-ignore
+    if (error?.response?.status === 413) {
+      errorMessage = "Falha: O stream é muito grande para ser exibido aqui.";
+    // @ts-ignore
+    } else if (error?.response?.status === 404) {
+      errorMessage = "Falha: O arquivo de stream não foi encontrado no servidor.";
+    }
+    
+    return (
+      <div className="mt-4 p-3 rounded-md border border-destructive/50 bg-destructive/10 text-destructive flex items-center gap-2">
+        <AlertCircle className="h-4 w-4" />
+        <span className="text-sm font-medium">{errorMessage}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-4 space-y-2">
+      <p className="text-sm font-medium text-muted-foreground">Conteúdo do Stream (Texto Plano)</p>
+      <ScrollArea className="h-64 w-full rounded-md border bg-muted/30 p-3">
+        {/* Usar <pre> para manter quebras de linha e espaços */}
+        <pre className="text-xs text-foreground whitespace-pre-wrap break-words">
+          {data || "Stream vazio ou sem conteúdo legível."}
+        </pre>
+      </ScrollArea>
+    </div>
+  );
+};
+// --- FIM DA ALTERAÇÃO ---
+
 
 export const AlertsTable = ({ limit, analysisId }: AlertsTableProps) => {
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = limit ?? 10; // Usa limite ou padrão 10 para paginação
+  const itemsPerPage = limit ?? 10;
+  // --- INÍCIO DA ALTERAÇÃO ---
+  // 3. Estado para controlar o modal de detalhes do alerta
+  const [selectedAlert, setSelectedAlert] = useState<AlertRead | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  // --- FIM DA ALTERAÇÃO ---
 
-  // Hook do React Query para buscar os dados
   const { data, isLoading, error, isFetching } = useQuery({
-    // A chave da query inclui dependências que causam refetch (ID, página, itens)
     queryKey: ['alerts', analysisId, currentPage, itemsPerPage],
     queryFn: async () => {
-      // Decide qual função da API chamar
       if (analysisId) {
-        // Busca alertas específicos da análise (API já pagina)
-        console.log(`Fetching alerts for analysis ${analysisId}, page ${currentPage}`);
         return getAnalysisAlerts(analysisId, currentPage, itemsPerPage);
       } else {
-         // Busca alertas gerais (agora paginado pelo backend)
-         console.log(`Fetching general alerts, page ${currentPage}`);
          return getAlerts(currentPage, itemsPerPage);
       }
     },
-    placeholderData: (previousData) => previousData, // Mantém dados antigos enquanto busca novos (evita piscar)
-    // staleTime: 60 * 1000, // Opcional: considerar dados "frescos" por 1 minuto
+    placeholderData: (previousData) => previousData,
   });
 
-  // Extrai dados da resposta ou usa arrays/valores padrão
   const alerts = data?.items ?? [];
   const totalPages = data?.pages ?? 0;
   const totalItems = data?.total ?? 0;
 
-  // Handler para mudança de página
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages) {
       setCurrentPage(newPage);
     }
   };
 
-   // Handler para exibir detalhes (exemplo usando alert())
+   // --- INÍCIO DA ALTERAÇÃO ---
+   // 4. Mudar handler para usar modal
    const handleViewDetails = (alertData: AlertRead) => {
       console.log("View details for alert:", alertData);
-      // Monta a mensagem para o alert
-      const details = [
-        `ID: ${alertData.id}`,
-        `Tipo: ${alertData.alert_type}`,
-        `Severidade: ${alertData.severity}`,
-        `IP Origem: ${alertData.src_ip || "-"}`,
-        `IP Destino: ${alertData.dst_ip || "-"}`,
-        `Porta: ${alertData.port ?? "-"}`,
-        `Protocolo: ${alertData.protocol || "-"}`,
-        `Evidência: ${alertData.evidence || "-"}`,
-        `Análise ID: ${alertData.analysis_id}`,
-      ];
-      if (alertData.stream_id) {
-          details.push(`Stream ID: ${alertData.stream_id}`);
-          // TODO: Adicionar botão/lógica para buscar e mostrar conteúdo do stream aqui
-          // Ex: getStreamContent(alert.stream_id).then(content => ...)
-      }
-      // Usar window.alert temporariamente para exibir detalhes
-      window.alert(`Detalhes do Alerta:\n\n${details.join("\n")}`);
+      setSelectedAlert(alertData);
+      setIsDetailOpen(true);
+      // O window.alert() foi removido
    };
+   // --- FIM DA ALTERAÇÃO ---
 
-  // Renderização condicional: Loading inicial
+  // Loading e Erro (sem alterações)
   if (isLoading && !data) {
     return (
       <div className="flex justify-center items-center h-40 text-muted-foreground">
@@ -105,10 +159,7 @@ export const AlertsTable = ({ limit, analysisId }: AlertsTableProps) => {
       </div>
     );
   }
-
-  // Renderização condicional: Erro na busca
   if (error) {
-    console.error("Erro ao buscar alertas:", error); // Log do erro no console
     return (
       <div className="flex flex-col justify-center items-center h-40 text-destructive bg-destructive/10 border border-destructive/30 rounded-md p-4">
         <AlertCircle className="h-8 w-8 mb-2" />
@@ -118,12 +169,11 @@ export const AlertsTable = ({ limit, analysisId }: AlertsTableProps) => {
     );
   }
 
-  // Renderização principal: Tabela e Paginação
+  // Tabela
   return (
     <div className="space-y-4">
-      {/* Container da Tabela com indicador de fetching */}
       <div className="rounded-md border border-border/50 relative overflow-hidden">
-       {isFetching && ( // Mostra spinner de atualização sobre a tabela
+       {isFetching && (
           <div className="absolute inset-0 bg-background/60 backdrop-blur-sm flex justify-center items-center z-10">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
               <span className="ml-2 text-sm text-muted-foreground">Atualizando...</span>
@@ -132,7 +182,6 @@ export const AlertsTable = ({ limit, analysisId }: AlertsTableProps) => {
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-muted/50 border-b border-border/50">
-              {/* Colunas da tabela */}
               <TableHead>Tipo</TableHead>
               <TableHead>Severidade</TableHead>
               <TableHead>IP Origem</TableHead>
@@ -150,7 +199,6 @@ export const AlertsTable = ({ limit, analysisId }: AlertsTableProps) => {
                     </TableCell>
                  </TableRow>
             ) : (
-              // Mapeia os alertas para as linhas da tabela
               alerts.map((alert) => (
                 <TableRow key={alert.id} className="hover:bg-muted/30">
                   <TableCell className="font-medium max-w-[150px] truncate" title={alert.alert_type}>
@@ -158,7 +206,6 @@ export const AlertsTable = ({ limit, analysisId }: AlertsTableProps) => {
                   </TableCell>
                   <TableCell>
                     <Badge variant={severityColors[alert.severity.toLowerCase()] || 'secondary'}>
-                      {/* Capitaliza a primeira letra da severidade */}
                       {alert.severity.charAt(0).toUpperCase() + alert.severity.slice(1)}
                     </Badge>
                   </TableCell>
@@ -167,7 +214,7 @@ export const AlertsTable = ({ limit, analysisId }: AlertsTableProps) => {
                   <TableCell>{alert.port ?? "-"}</TableCell>
                   <TableCell>{alert.protocol || "-"}</TableCell>
                   <TableCell className="text-right">
-                    {/* Botão para ver detalhes */}
+                    {/* 5. onClick agora chama handleViewDetails */}
                     <Button variant="ghost" size="icon" onClick={() => handleViewDetails(alert)} title="Ver Detalhes">
                       <Eye className="h-4 w-4" />
                     </Button>
@@ -179,9 +226,7 @@ export const AlertsTable = ({ limit, analysisId }: AlertsTableProps) => {
         </Table>
       </div>
 
-       {/* --- INÍCIO DA ALTERAÇÃO --- */}
-
-       {/* Controles de Paginação (só aparecem se não for limitado e houver mais de 1 página) */}
+       {/* Paginação e Sumário */}
        {!limit && totalPages > 1 && (
          <div className="flex flex-col items-center gap-2">
              <Pagination>
@@ -194,29 +239,23 @@ export const AlertsTable = ({ limit, analysisId }: AlertsTableProps) => {
                      className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
                  />
                  </PaginationItem>
-                 {/* Lógica de renderização das páginas (ex: mostrar 1 ... 5 6 7 ... 10) */}
                  {(() => {
                      const pageNumbers = [];
-                     const maxPagesToShow = 5; // Máximo de números de página visíveis (excluindo primeiro/último/elipses)
+                     const maxPagesToShow = 5;
                      const halfMax = Math.floor(maxPagesToShow / 2);
 
-                     if (totalPages <= maxPagesToShow + 2) { // Mostra todos se couber
+                     if (totalPages <= maxPagesToShow + 2) {
                         for (let i = 1; i <= totalPages; i++) pageNumbers.push(i);
                      } else {
-                        pageNumbers.push(1); // Sempre mostra a primeira página
+                        pageNumbers.push(1);
                         let startPage = Math.max(2, currentPage - halfMax);
                         let endPage = Math.min(totalPages - 1, currentPage + halfMax);
-
-                        // Ajusta limites se perto do início/fim
                         if (currentPage <= halfMax + 1) endPage = maxPagesToShow + 1;
                         if (currentPage >= totalPages - halfMax) startPage = totalPages - maxPagesToShow;
-
-                        if (startPage > 2) pageNumbers.push(-1); // Elipse inicial
-
+                        if (startPage > 2) pageNumbers.push(-1);
                         for (let i = startPage; i <= endPage; i++) pageNumbers.push(i);
-
-                        if (endPage < totalPages - 1) pageNumbers.push(-1); // Elipse final
-                        pageNumbers.push(totalPages); // Sempre mostra a última página
+                        if (endPage < totalPages - 1) pageNumbers.push(-1);
+                        pageNumbers.push(totalPages);
                      }
 
                      return pageNumbers.map((pageNum, index) => (
@@ -248,22 +287,78 @@ export const AlertsTable = ({ limit, analysisId }: AlertsTableProps) => {
              </Pagination>
          </div>
        )}
-
-       {/* Sumário de Paginação (separado) - Padrão AnalysesTable */}
        {!limit && totalItems > 0 && (
           <p className="text-center text-sm text-muted-foreground">
               Mostrando {alerts.length} de {totalItems} {totalItems === 1 ? 'alerta' : 'alertas'}. Página {currentPage} de {totalPages}.
           </p>
        )}
-
-       {/* --- FIM DA ALTERAÇÃO --- */}
-
-       {/* Caso limite seja usado e haja mais itens do que o limite */}
        {limit && totalItems > limit && (
            <p className="text-center text-sm text-muted-foreground">
               Mostrando os {limit} alertas mais recentes de {totalItems}.
            </p>
        )}
+
+      {/* --- INÍCIO DA ALTERAÇÃO --- */}
+      {/* 6. Adicionar o Dialog de Detalhes do Alerta */}
+      <Dialog open={isDetailOpen && !!selectedAlert} onOpenChange={(isOpen) => {
+          if (!isOpen) {
+            setSelectedAlert(null); // Limpa o estado ao fechar
+          }
+          setIsDetailOpen(isOpen);
+        }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className={`h-5 w-5 ${selectedAlert?.severity === 'critical' || selectedAlert?.severity === 'high' ? 'text-destructive' : 'text-primary'}`} />
+              Detalhes do Alerta
+            </DialogTitle>
+            <DialogDescription>
+              Informações detalhadas sobre o alerta <code className="text-xs">{selectedAlert?.alert_type}</code>
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedAlert && (
+            // Adicionado max-h e overflow-y para o caso de streams muito longos
+            <div className="space-y-3 py-4 text-sm max-h-[70vh] overflow-y-auto pr-2">
+              {/* Detalhes estáticos */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
+                <div><span className="font-medium text-muted-foreground w-24 inline-block">Tipo:</span> {selectedAlert.alert_type}</div>
+                <div><span className="font-medium text-muted-foreground w-24 inline-block">Severidade:</span> 
+                  <Badge variant={severityColors[selectedAlert.severity.toLowerCase()] || 'secondary'}>
+                    {selectedAlert.severity.charAt(0).toUpperCase() + selectedAlert.severity.slice(1)}
+                  </Badge>
+                </div>
+                <div><span className="font-medium text-muted-foreground w-24 inline-block">IP Origem:</span> <code className="text-xs">{selectedAlert.src_ip || "-"}</code></div>
+                <div><span className="font-medium text-muted-foreground w-24 inline-block">IP Destino:</span> <code className="text-xs">{selectedAlert.dst_ip || "-"}</code></div>
+                <div><span className="font-medium text-muted-foreground w-24 inline-block">Porta:</span> {selectedAlert.port ?? "-"}</div>
+                <div><span className="font-medium text-muted-foreground w-24 inline-block">Protocolo:</span> {selectedAlert.protocol || "-"}</div>
+                <div><span className="font-medium text-muted-foreground w-24 inline-block">Análise ID:</span> <code className="text-xs">{selectedAlert.analysis_id}</code></div>
+                {selectedAlert.stream_id && <div><span className="font-medium text-muted-foreground w-24 inline-block">Stream ID:</span> <code className="text-xs">{selectedAlert.stream_id}</code></div>}
+              </div>
+              
+              {/* Evidência */}
+              {selectedAlert.evidence && (
+                <div className="space-y-1 pt-2">
+                  <span className="font-medium text-muted-foreground w-24 inline-block">Evidência:</span>
+                  <p className="text-xs p-2 rounded-md bg-muted/50 border italic text-foreground">{selectedAlert.evidence}</p>
+                </div>
+              )}
+
+              {/* Conteúdo do Stream (buscado dinamicamente) */}
+              {selectedAlert.stream_id && (
+                <StreamContent streamId={selectedAlert.stream_id} />
+              )}
+            </div>
+          )}
+
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline" onClick={() => setSelectedAlert(null)}>Fechar</Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* --- FIM DA ALTERAÇÃO --- */}
     </div>
   );
 };
