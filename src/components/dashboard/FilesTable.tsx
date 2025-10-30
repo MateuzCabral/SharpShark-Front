@@ -1,4 +1,3 @@
-// src/componentes/dashboard/FilesTable.tsx
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -44,7 +43,8 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast as sonnerToast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge"; // Certifique-se que Badge está importado
+import { Badge } from "@/components/ui/badge";
+import { formatUtcDateToBrazil } from "@/lib/utils"; // <-- 1. IMPORTAR HELPER
 
 export const FilesTable = () => {
   const queryClient = useQueryClient();
@@ -67,18 +67,18 @@ export const FilesTable = () => {
 
   // Mutação para deletar
   const deleteFileMutation = useMutation({
-     mutationFn: deleteFileById,
-     onSuccess: (_, fileId) => {
-       sonnerToast.success("Arquivo removido", { description: `Arquivo (ID: ${fileId.substring(0,8)}...) e análise removidos.` });
-       queryClient.invalidateQueries({ queryKey: ['files'] });
-       queryClient.invalidateQueries({ queryKey: ['analyses'] });
-       queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
-       if (files.length === 1 && currentPage > 1) setCurrentPage(currentPage - 1);
-     },
-     onError: (error: any, fileId) => {
-       sonnerToast.error("Falha ao remover", { description: error.response?.data?.detail || `Erro ao remover arquivo (ID: ${fileId.substring(0,8)}...).` });
-     },
-     onSettled: () => { setPendingDeleteId(null); }
+      mutationFn: deleteFileById,
+      onSuccess: (_, fileId) => {
+        sonnerToast.success("Arquivo removido", { description: `Arquivo (ID: ${fileId.substring(0,8)}...) e análise removidos.` });
+        queryClient.invalidateQueries({ queryKey: ['files'] });
+        queryClient.invalidateQueries({ queryKey: ['analyses'] });
+        queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
+        if (files.length === 1 && currentPage > 1) setCurrentPage(currentPage - 1);
+      },
+      onError: (error: any, fileId) => {
+        sonnerToast.error("Falha ao remover", { description: error.response?.data?.detail || `Erro ao remover arquivo (ID: ${fileId.substring(0,8)}...).` });
+      },
+      onSettled: () => { setPendingDeleteId(null); }
   });
 
   const handlePageChange = (newPage: number) => {
@@ -86,8 +86,8 @@ export const FilesTable = () => {
   };
 
   const handleDeleteConfirm = (fileId: string) => {
-     setPendingDeleteId(fileId);
-     deleteFileMutation.mutate(fileId);
+      setPendingDeleteId(fileId);
+      deleteFileMutation.mutate(fileId);
   };
 
   const handleViewDetails = (file: FileRead) => {
@@ -95,35 +95,34 @@ export const FilesTable = () => {
       setIsDetailOpen(true);
   };
 
-  const formatDateTime = (isoString: string | null | undefined): string => {
-    if (!isoString) return "-"; try { const date = new Date(isoString); if (isNaN(date.getTime())) return "-"; return date.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch (e) { return isoString; }
-  };
+  // --- 2. REMOVER FUNÇÃO ANTIGA ---
+  // const formatDateTime = (isoString: string | null | undefined): string => { ... };
 
   // Loading / Erro Cards (Definidos como componentes internos)
   const LoadingCard = () => (
-      <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
-          <CardHeader>
-              <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5 text-primary"/> Arquivos Enviados</CardTitle>
-              <CardDescription>Lista de todos os arquivos .pcap/.pcapng que foram enviados.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2 pt-4">
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-          </CardContent>
-      </Card>
+     <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+        <CardHeader>
+            <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5 text-primary"/> Arquivos Enviados</CardTitle>
+            <CardDescription>Lista de todos os arquivos .pcap/.pcapng que foram enviados.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2 pt-4">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+        </CardContent>
+     </Card>
   );
 
   const ErrorCard = () => (
-      <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
-          <CardHeader>
-              <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5 text-primary"/> Arquivos Enviados</CardTitle>
-              <CardDescription>Lista de todos os arquivos .pcap/.pcapng que foram enviados.</CardDescription>
-          </CardHeader>
-          <CardContent className="flex justify-center items-center h-40 text-destructive">
-              <AlertCircle className="h-8 w-8 mr-2" /><span>Falha ao carregar arquivos. Tente atualizar.</span>
-          </CardContent>
-      </Card>
+     <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+        <CardHeader>
+            <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5 text-primary"/> Arquivos Enviados</CardTitle>
+            <CardDescription>Lista de todos os arquivos .pcap/.pcapng que foram enviados.</CardDescription>
+        </CardHeader>
+        <CardContent className="flex justify-center items-center h-40 text-destructive">
+            <AlertCircle className="h-8 w-8 mr-2" /><span>Falha ao carregar arquivos. Tente atualizar.</span>
+        </CardContent>
+     </Card>
   );
 
   if (isLoading && !data) return <LoadingCard />;
@@ -138,19 +137,17 @@ export const FilesTable = () => {
       <CardContent className="space-y-4">
         {/* Tabela */}
         <div className="rounded-md border relative">
-          {/* ----- CORREÇÃO AQUI ----- */}
           {isFetching && !isLoading && (
             <div className="absolute inset-0 bg-background/50 flex justify-center items-center z-10 rounded-md">
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
             </div>
-          )} {/* <<<<<< O comentário foi removido de dentro */}
-          {/* ----- FIM CORREÇÃO ----- */}
+          )}
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Nome do Arquivo</TableHead>
                 <TableHead className="w-[100px]">Tamanho</TableHead>
-                <TableHead className="w-[180px]">Data Upload (SP)</TableHead>
+                <TableHead className="w-[180px]">Data Upload</TableHead>
                 <TableHead className="w-[150px]">Hash (Início)</TableHead>
                 <TableHead className="text-right w-[120px]">Ações</TableHead>
               </TableRow>
@@ -163,19 +160,22 @@ export const FilesTable = () => {
                   <TableRow key={file.id}>
                     <TableCell className="font-medium max-w-[250px] truncate" title={file.file_name}>{file.file_name}</TableCell>
                     <TableCell>{file.file_size.toFixed(1)} MB</TableCell>
-                    <TableCell className="text-muted-foreground text-xs">{formatDateTime(file.uploaded_at)}</TableCell>
+                    <TableCell className="text-muted-foreground text-xs">
+                      {/* --- 3. USAR HELPER --- */}
+                      {formatUtcDateToBrazil(file.uploaded_at)}
+                    </TableCell>
                     <TableCell className="font-mono text-xs" title={file.file_hash}>{file.file_hash.substring(0, 12)}...</TableCell>
                     <TableCell className="text-right">
-                       {/* Botão Detalhes */}
-                       <Button variant="ghost" size="icon" title="Ver Detalhes do Arquivo" onClick={() => handleViewDetails(file)}>
-                           <Info className="h-4 w-4" />
-                       </Button>
-                       {/* Botão Deletar com Confirmação */}
-                       <AlertDialog>
+                        {/* Botão Detalhes */}
+                        <Button variant="ghost" size="icon" title="Ver Detalhes do Arquivo" onClick={() => handleViewDetails(file)}>
+                            <Info className="h-4 w-4" />
+                        </Button>
+                        {/* Botão Deletar com Confirmação */}
+                        <AlertDialog>
                           <AlertDialogTrigger asChild>
-                             <Button variant="ghost" size="icon" title="Remover Arquivo e Análise" disabled={deleteFileMutation.isPending}>
+                              <Button variant="ghost" size="icon" title="Remover Arquivo e Análise" disabled={deleteFileMutation.isPending}>
                                 {deleteFileMutation.isPending && pendingDeleteId === file.id ? (<Loader2 className="h-4 w-4 animate-spin"/>) : (<Trash2 className="h-4 w-4 text-destructive" />)}
-                             </Button>
+                              </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader><AlertDialogTitle>Confirmar Remoção</AlertDialogTitle><AlertDialogDescription>Remover <span className="font-medium">{file.file_name}</span>? <br/><span className="font-bold text-destructive">A análise associada também será removida.</span></AlertDialogDescription></AlertDialogHeader>
@@ -195,12 +195,12 @@ export const FilesTable = () => {
            <div className="flex flex-col items-center gap-2">
              <Pagination>
                <PaginationContent>
-                  <PaginationItem><PaginationPrevious href="#" onClick={(e) => { e.preventDefault(); handlePageChange(currentPage - 1); }} aria-disabled={currentPage === 1} className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}/></PaginationItem>
-                   {(() => { const pN = []; const maxP = 5; const halfM = Math.floor(maxP / 2); if (totalPages <= maxP + 2) { for (let i = 1; i <= totalPages; i++) pN.push(i); } else { pN.push(1); let sP = Math.max(2, currentPage - halfM); let eP = Math.min(totalPages - 1, currentPage + halfM); if (currentPage <= halfM + 1) eP = maxP + 1; if (currentPage >= totalPages - halfM) sP = totalPages - maxP; if (sP > 2) pN.push(-1); for (let i = sP; i <= eP; i++) pN.push(i); if (eP < totalPages - 1) pN.push(-1); pN.push(totalPages); } return pN.map((p, i) => ( p === -1 ? (<PaginationItem key={`e-${i}`}><PaginationEllipsis /></PaginationItem>) : (<PaginationItem key={p}><PaginationLink href="#" onClick={(e) => { e.preventDefault(); handlePageChange(p); }} isActive={currentPage === p} aria-current={currentPage === p ? "page" : undefined}>{p}</PaginationLink></PaginationItem>) ));})()}
-                  <PaginationItem><PaginationNext href="#" onClick={(e) => { e.preventDefault(); handlePageChange(currentPage + 1); }} aria-disabled={currentPage === totalPages} className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}/></PaginationItem>
+                 <PaginationItem><PaginationPrevious href="#" onClick={(e) => { e.preventDefault(); handlePageChange(currentPage - 1); }} aria-disabled={currentPage === 1} className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}/></PaginationItem>
+                 {(() => { const pN = []; const maxP = 5; const halfM = Math.floor(maxP / 2); if (totalPages <= maxP + 2) { for (let i = 1; i <= totalPages; i++) pN.push(i); } else { pN.push(1); let sP = Math.max(2, currentPage - halfM); let eP = Math.min(totalPages - 1, currentPage + halfM); if (currentPage <= halfM + 1) eP = maxP + 1; if (currentPage >= totalPages - halfM) sP = totalPages - maxP; if (sP > 2) pN.push(-1); for (let i = sP; i <= eP; i++) pN.push(i); if (eP < totalPages - 1) pN.push(-1); pN.push(totalPages); } return pN.map((p, i) => ( p === -1 ? (<PaginationItem key={`e-${i}`}><PaginationEllipsis /></PaginationItem>) : (<PaginationItem key={p}><PaginationLink href="#" onClick={(e) => { e.preventDefault(); handlePageChange(p); }} isActive={currentPage === p} aria-current={currentPage === p ? "page" : undefined}>{p}</PaginationLink></PaginationItem>) ));})()}
+                 <PaginationItem><PaginationNext href="#" onClick={(e) => { e.preventDefault(); handlePageChange(currentPage + 1); }} aria-disabled={currentPage === totalPages} className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}/></PaginationItem>
                </PaginationContent>
              </Pagination>
-              {totalItems > 0 && ( <p className="text-xs text-muted-foreground"> Página {currentPage} de {totalPages} ({totalItems} {totalItems === 1 ? 'arquivo' : 'arquivos'} no total) </p> )}
+             {totalItems > 0 && ( <p className="text-xs text-muted-foreground"> Página {currentPage} de {totalPages} ({totalItems} {totalItems === 1 ? 'arquivo' : 'arquivos'} no total) </p> )}
            </div>
         )}
 
@@ -213,14 +213,18 @@ export const FilesTable = () => {
                        <div><span className="font-medium text-muted-foreground w-24 inline-block">Nome:</span> {detailFile.file_name}</div>
                        <div><span className="font-medium text-muted-foreground w-24 inline-block">ID:</span> <code className="text-xs">{detailFile.id}</code></div>
                        <div><span className="font-medium text-muted-foreground w-24 inline-block">Tamanho:</span> {detailFile.file_size.toFixed(2)} MB</div>
-                       <div><span className="font-medium text-muted-foreground w-24 inline-block">Upload:</span> {formatDateTime(detailFile.uploaded_at)} (SP)</div>
+                       <div>
+                         <span className="font-medium text-muted-foreground w-24 inline-block">Upload:</span> 
+                         {/* --- 4. USAR HELPER AQUI TAMBÉM --- */}
+                         {formatUtcDateToBrazil(detailFile.uploaded_at)}
+                       </div>
                        <div><span className="font-medium text-muted-foreground w-24 inline-block">Usuário ID:</span> <code className="text-xs">{detailFile.user_id}</code></div>
                        <div className="pt-2"><span className="font-medium text-muted-foreground w-24 inline-block">Hash SHA256:</span> <code className="text-xs break-all">{detailFile.file_hash}</code></div>
                    </div>
                )}
                <DialogFooter><DialogClose asChild><Button variant="outline">Fechar</Button></DialogClose></DialogFooter>
            </DialogContent>
-        </Dialog>
+         </Dialog>
 
       </CardContent>
     </Card>

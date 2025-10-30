@@ -1,4 +1,3 @@
-// src/componentes/dashboard/HashSearch.tsx
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -15,6 +14,7 @@ import {
     DialogFooter,
     DialogClose,
 } from "@/components/ui/dialog"; // Para detalhes
+import { formatUtcDateToBrazil } from "@/lib/utils"; // <-- 1. IMPORTAR HELPER
 
 export const HashSearch = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -23,11 +23,8 @@ export const HashSearch = () => {
   const [searchError, setSearchError] = useState<string | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false); // Controla modal de detalhes
 
-  // Função helper para formatar data/hora
-  const formatDateTime = (isoString: string | null | undefined): string => {
-    // ... (mesma função helper anterior) ...
-     if (!isoString) return "-"; try { const date = new Date(isoString); if (isNaN(date.getTime())) return "-"; return date.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch (e) { return isoString; }
-  };
+  // --- 2. REMOVER FUNÇÃO ANTIGA ---
+  // const formatDateTime = (isoString: string | null | undefined): string => { ... };
 
   const handleSearch = async () => {
     const term = searchTerm.trim();
@@ -102,33 +99,37 @@ export const HashSearch = () => {
       {searchError && !isSearching && (
         <Card className="border-destructive/50 bg-destructive/10">
           <CardContent className="p-4 flex items-center gap-2 text-destructive">
-             <AlertCircle className="h-5 w-5" />
-             <p className="text-sm font-medium">{searchError}</p>
+              <AlertCircle className="h-5 w-5" />
+              <p className="text-sm font-medium">{searchError}</p>
           </CardContent>
         </Card>
       )}
 
       {/* Modal para exibir os detalhes do arquivo encontrado */}
       <Dialog open={isDetailOpen && !!searchResult} onOpenChange={setIsDetailOpen}>
-          <DialogContent className="max-w-xl">
-              <DialogHeader>
-                  <DialogTitle className="flex items-center gap-2"><Info className="h-5 w-5 text-primary"/> Detalhes do Arquivo Encontrado</DialogTitle>
-                  {/* <DialogDescription>Informações sobre o arquivo encontrado.</DialogDescription> */}
-              </DialogHeader>
-              {searchResult && (
-                  <div className="space-y-3 py-4 text-sm">
-                      <div><span className="font-medium text-muted-foreground w-24 inline-block">Nome:</span> {searchResult.file_name}</div>
-                      <div><span className="font-medium text-muted-foreground w-24 inline-block">ID:</span> <code className="text-xs">{searchResult.id}</code></div>
-                      <div><span className="font-medium text-muted-foreground w-24 inline-block">Tamanho:</span> {searchResult.file_size.toFixed(2)} MB</div>
-                      <div><span className="font-medium text-muted-foreground w-24 inline-block">Upload:</span> {formatDateTime(searchResult.uploaded_at)} (SP)</div>
-                      <div><span className="font-medium text-muted-foreground w-24 inline-block">Usuário ID:</span> <code className="text-xs">{searchResult.user_id}</code></div>
-                      <div className="pt-2"><span className="font-medium text-muted-foreground w-24 inline-block">Hash SHA256:</span> <code className="text-xs break-all">{searchResult.file_hash}</code></div>
-                  </div>
-              )}
-              <DialogFooter>
-                  <DialogClose asChild><Button variant="outline">Fechar</Button></DialogClose>
-              </DialogFooter>
-          </DialogContent>
+        <DialogContent className="max-w-xl">
+            <DialogHeader>
+                <DialogTitle className="flex items-center gap-2"><Info className="h-5 w-5 text-primary"/> Detalhes do Arquivo Encontrado</DialogTitle>
+                {/* <DialogDescription>Informações sobre o arquivo encontrado.</DialogDescription> */}
+            </DialogHeader>
+            {searchResult && (
+                <div className="space-y-3 py-4 text-sm">
+                    <div><span className="font-medium text-muted-foreground w-24 inline-block">Nome:</span> {searchResult.file_name}</div>
+                    <div><span className="font-medium text-muted-foreground w-24 inline-block">ID:</span> <code className="text-xs">{searchResult.id}</code></div>
+                    <div><span className="font-medium text-muted-foreground w-24 inline-block">Tamanho:</span> {searchResult.file_size.toFixed(2)} MB</div>
+                    <div>
+                      <span className="font-medium text-muted-foreground w-24 inline-block">Upload:</span>
+                      {/* --- 3. USAR HELPER --- */}
+                      {formatUtcDateToBrazil(searchResult.uploaded_at)}
+                    </div>
+                    <div><span className="font-medium text-muted-foreground w-24 inline-block">Usuário ID:</span> <code className="text-xs">{searchResult.user_id}</code></div>
+                    <div className="pt-2"><span className="font-medium text-muted-foreground w-24 inline-block">Hash SHA256:</span> <code className="text-xs break-all">{searchResult.file_hash}</code></div>
+                </div>
+            )}
+            <DialogFooter>
+                <DialogClose asChild><Button variant="outline">Fechar</Button></DialogClose>
+            </DialogFooter>
+        </DialogContent>
       </Dialog>
 
     </div>

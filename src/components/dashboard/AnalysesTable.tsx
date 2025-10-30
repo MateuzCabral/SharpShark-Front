@@ -1,4 +1,3 @@
-// src/componentes/dashboard/AnalysesTable.tsx
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -22,6 +21,7 @@ import {
   PaginationPrevious,
   PaginationEllipsis
 } from "@/components/ui/pagination"; // Integração
+import { formatUtcDateToBrazil } from "@/lib/utils"; // <-- 1. IMPORTAR HELPER
 
 // Mapeamento de status para configuração do Badge
 const statusConfig: Record<string, { variant: "default" | "secondary" | "destructive" | "outline", label: string }> = {
@@ -130,21 +130,15 @@ export const AnalysesTable = () => {
                     {/* // Integração: Usar tamanho do arquivo da API se disponível */}
                     {analysis.file?.file_size ? `${analysis.file.file_size.toFixed(1)} MB` : '-'}
                   </TableCell>
-                  {/* <TableCell>
-                    {analysis.alerts_count > 0 ? ( // Ajustar se a contagem for adicionada
-                      <Badge variant="destructive">{analysis.alerts_count}</Badge>
-                    ) : (
-                      <span className="text-muted-foreground">0</span>
-                    )}
-                  </TableCell> */}
+                  {/* <TableCell>...</TableCell> */}
                   <TableCell>
                     <Badge variant={statusConfig[analysis.status]?.variant || 'secondary'}>
                       {statusConfig[analysis.status]?.label || analysis.status}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-muted-foreground text-sm">
-                    {/* // Integração: Formatar data da API */}
-                    {analysis.analyzed_at ? new Date(analysis.analyzed_at).toLocaleString("pt-BR") : "-"}
+                    {/* --- 2. USAR HELPER --- */}
+                    {formatUtcDateToBrazil(analysis.analyzed_at)}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
