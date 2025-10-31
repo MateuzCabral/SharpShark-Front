@@ -23,7 +23,6 @@ export interface DashboardStats {
 export const getDashboardStats = async (): Promise<DashboardStats> => {
    try {
      const response = await api.get<DashboardStats>("/stats/dashboard/summary");
-     console.log("Dashboard stats received:", response.data); 
      return response.data;
    } catch (error) {
        console.error("Failed to fetch dashboard stats:", error);
