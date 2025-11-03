@@ -1,6 +1,7 @@
 // src/componentes/dashboard/UsersManagement.tsx
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+// --- INÍCIO DA ALTERAÇÃO (Caminhos) ---
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,9 +9,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { toast as sonnerToast } from "sonner"; // Usando sonner
+import { toast as sonnerToast } from "sonner";
 import { UserPlus, Pencil, Trash2, Search, Loader2, AlertCircle, Users } from "lucide-react";
-import { getUsers, createUser, updateUser, deleteUser, UserRead, UserCreate, UserUpdate } from "@/api/users"; // Integração
+import { getUsers, createUser, updateUser, deleteUser, UserRead, UserCreate, UserUpdate } from "@/api/users";
 import {
   Pagination,
   PaginationContent,
@@ -19,15 +20,15 @@ import {
   PaginationNext,
   PaginationPrevious,
   PaginationEllipsis
-} from "@/components/ui/pagination"; // Integração
-import { AccessDeniedMessage } from "@/components/AccessDeniedMessage"; // Importar
-import { AxiosError } from "axios"; // Importar AxiosError para checar status
+} from "@/components/ui/pagination";
+import { AccessDeniedMessage } from "../AccessDeniedMessage";
+import { AxiosError } from "axios"; 
+// --- FIM DA ALTERAÇÃO (Caminhos) ---
 
-// Interface para exibição, mapeada de UserRead
 interface UserDisplay extends UserRead {
   role: "admin" | "user";
   status: "active" | "inactive";
-  created_at_display?: string; // Para data formatada
+  created_at_display?: string; 
 }
 
 export const UsersManagement = () => {
@@ -40,27 +41,24 @@ export const UsersManagement = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  // Integração: Fetch users com React Query
-  const { data, isLoading, error, isFetching, isError } = useQuery({ // Adicionado isError
+  const { data, isLoading, error, isFetching, isError } = useQuery({ 
     queryKey: ['users', currentPage, itemsPerPage],
     queryFn: () => getUsers(currentPage, itemsPerPage),
     placeholderData: (previousData) => previousData,
-    // Mapeia os dados da API para o formato de exibição
     select: (data) => ({
       ...data,
       items: data.items.map(user => ({
         ...user,
         role: user.is_superuser ? 'admin' : 'user',
         status: user.is_active ? 'active' : 'inactive',
-        created_at_display: user.created_at ? new Date(user.created_at).toLocaleDateString("pt-BR") : 'N/A' // Ajustar se backend incluir created_at
+        created_at_display: user.created_at ? new Date(user.created_at).toLocaleDateString("pt-BR") : 'N/A' 
       }))
     }),
-    retry: (failureCount, error) => { // Não retenta em erro 403
+    retry: (failureCount, error) => { 
         if (error instanceof AxiosError && error.response?.status === 403) {
-            console.log("Access Denied (403) for users, not retrying.");
-            return false;
+           console.log("Access Denied (403) for users, not retrying.");
+           return false;
         }
-        // Retenta 3 vezes para outros erros
         return failureCount < 3;
     }
   });
@@ -69,10 +67,9 @@ export const UsersManagement = () => {
   const totalPages = data?.pages ?? 0;
   const totalItems = data?.total ?? 0;
 
-  // Integração: Mutações para Create, Update, Delete
   const mutationOptions = {
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] }); // Invalida o cache para buscar a lista atualizada
+      queryClient.invalidateQueries({ queryKey: ['users'] }); 
     },
     onError: (error: any) => {
       sonnerToast.error("Operação falhou", {
@@ -85,7 +82,7 @@ export const UsersManagement = () => {
     mutationFn: createUser,
     ...mutationOptions,
     onSuccess: (newUser) => {
-       mutationOptions.onSuccess(); // Chama o onSuccess base
+       mutationOptions.onSuccess(); 
        sonnerToast.success("Usuário criado", {
          description: `${newUser.name} foi adicionado com sucesso.`,
        });
@@ -97,29 +94,28 @@ export const UsersManagement = () => {
   const updateUserMutation = useMutation({
     mutationFn: ({ userId, userData }: { userId: string; userData: UserUpdate }) => updateUser(userId, userData),
      ...mutationOptions,
-     onSuccess: (_, variables) => { // O primeiro argumento é a resposta, o segundo são as variáveis enviadas
-        mutationOptions.onSuccess();
-        sonnerToast.success("Usuário atualizado", {
-          description: `As informações de ${variables.userData.name || selectedUser?.name} foram salvas.`,
-        });
-        setIsEditOpen(false);
-        setSelectedUser(null);
-        setFormData({ name: "", password: "", is_active: true, is_superuser: false });
+     onSuccess: (_, variables) => { 
+       mutationOptions.onSuccess();
+       sonnerToast.success("Usuário atualizado", {
+         description: `As informações de ${variables.userData.name || selectedUser?.name} foram salvas.`,
+       });
+       setIsEditOpen(false);
+       setSelectedUser(null);
+       setFormData({ name: "", password: "", is_active: true, is_superuser: false });
      }
   });
 
   const deleteUserMutation = useMutation({
     mutationFn: deleteUser,
      ...mutationOptions,
-     onSuccess: (_, userId) => { // O segundo argumento é o ID do usuário deletado
-        mutationOptions.onSuccess();
-        sonnerToast.error("Usuário removido", { // Usando error variant para delete
-           description: `O usuário (ID: ${userId}) foi removido do sistema.`,
-        });
+     onSuccess: (_, userId) => { 
+       mutationOptions.onSuccess();
+       sonnerToast.error("Usuário removido", { 
+         description: `O usuário (ID: ${userId}) foi removido do sistema.`,
+       });
      }
   });
 
-  // Handlers
   const handleCreate = () => {
     if (!formData.name || !formData.password) {
       sonnerToast.warning("Campos obrigatórios", { description: "Nome e senha são necessários." });
@@ -142,29 +138,26 @@ export const UsersManagement = () => {
     if (!selectedUser) return;
     const updateData: UserUpdate = {
       name: formData.name !== selectedUser.name ? formData.name : undefined,
-      password: formData.password ? formData.password : undefined, // Envia só se digitou nova senha
+      password: formData.password ? formData.password : undefined, 
       is_active: formData.is_active !== selectedUser.is_active ? formData.is_active : undefined,
       is_superuser: formData.is_superuser !== selectedUser.is_superuser ? formData.is_superuser : undefined,
     };
 
-     // Verifica se a nova senha (se fornecida) é válida
      if (updateData.password && updateData.password.length < 8) {
-        sonnerToast.warning("Senha curta", { description: "A nova senha deve ter pelo menos 8 caracteres." });
-        return;
+       sonnerToast.warning("Senha curta", { description: "A nova senha deve ter pelo menos 8 caracteres." });
+       return;
      }
 
-     // Verifica se há algo para atualizar
      if (Object.values(updateData).every(val => val === undefined)) {
-        sonnerToast.info("Nenhuma alteração", { description: "Nenhum dado foi modificado." });
-        setIsEditOpen(false);
-        return;
+       sonnerToast.info("Nenhuma alteração", { description: "Nenhum dado foi modificado." });
+       setIsEditOpen(false);
+       return;
      }
 
     updateUserMutation.mutate({ userId: selectedUser.id, userData: updateData });
   };
 
   const handleDelete = (user: UserDisplay) => {
-    // Adicionar confirmação
     if (window.confirm(`Tem certeza que deseja remover o usuário ${user.name}? Esta ação não pode ser desfeita.`)) {
       deleteUserMutation.mutate(user.id);
     }
@@ -182,76 +175,69 @@ export const UsersManagement = () => {
     }
   };
 
-  // Filtro local (a API de usuários não tem filtro por nome no código fornecido)
-   const filteredUsers = users.filter(
+  const filteredUsers = users.filter(
      (user) =>
        user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
        user.id.toLowerCase().includes(searchTerm.toLowerCase())
-   );
+  );
 
-  // --- TRATAMENTO DE ESTADOS ---
-
-  // Estado de Loading Inicial
-  if (isLoading && !isError) { // Só mostra loading se não houver erro ainda
+  if (isLoading && !isError) { 
     return <Card><CardContent className="flex justify-center items-center h-60"><Loader2 className="h-8 w-8 animate-spin text-primary" /><span className="ml-2">Carregando usuários...</span></CardContent></Card>;
   }
 
-  // Estado de Erro 403 (Acesso Negado)
   if (isError && error instanceof AxiosError && error.response?.status === 403) {
     return <AccessDeniedMessage resourceName="o gerenciamento de usuários" />;
   }
 
-  // Estado de Outro Erro
   if (isError && !(error instanceof AxiosError && error.response?.status === 403)) {
      console.error("Erro ao buscar usuários:", error);
      return <Card><CardContent className="flex justify-center items-center h-60 text-destructive"><AlertCircle className="h-8 w-8 mr-2" /><span>Falha ao carregar usuários. Tente atualizar.</span></CardContent></Card>;
   }
 
-  // --- RENDERIZAÇÃO NORMAL ---
   return (
     <Card>
       <CardHeader>
          <div className="flex items-center justify-between">
            <div className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-primary" />
-              <div>
-                <CardTitle>Gerenciamento de Usuários</CardTitle>
-                <CardDescription>Criar, editar, visualizar e remover usuários</CardDescription>
-              </div>
+             <Users className="h-5 w-5 text-primary" />
+             <div>
+               <CardTitle>Gerenciamento de Usuários</CardTitle>
+               <CardDescription>Criar, editar, visualizar e remover usuários</CardDescription>
+             </div>
            </div>
            {/* Botão Novo Usuário e Dialog */}
            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-              <DialogTrigger asChild><Button><UserPlus className="mr-2 h-4 w-4" /> Novo Usuário</Button></DialogTrigger>
-              <DialogContent>
-                 <DialogHeader>
-                    <DialogTitle>Criar Novo Usuário</DialogTitle>
-                    <DialogDescription>Adicione um novo usuário ao sistema</DialogDescription>
-                 </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="create-name">Nome *</Label>
-                      <Input id="create-name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Nome completo" required />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="create-password">Senha *</Label>
-                      <Input id="create-password" type="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} placeholder="Mínimo 8 caracteres" required />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="create-role">Função</Label>
-                      <select id="create-role" className="input-like-select" value={formData.is_superuser ? 'admin' : 'user'} onChange={(e) => setFormData({ ...formData, is_superuser: e.target.value === 'admin' })}>
-                        <option value="user">Usuário</option>
-                        <option value="admin">Administrador</option>
-                      </select>
-                    </div>
-                  </div>
-                 <DialogFooter>
-                    <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancelar</Button>
-                    <Button onClick={handleCreate} disabled={createUserMutation.isPending}>
-                      {createUserMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Criar
-                    </Button>
-                 </DialogFooter>
-              </DialogContent>
+             <DialogTrigger asChild><Button><UserPlus className="mr-2 h-4 w-4" /> Novo Usuário</Button></DialogTrigger>
+             <DialogContent>
+               <DialogHeader>
+                 <DialogTitle>Criar Novo Usuário</DialogTitle>
+                 <DialogDescription>Adicione um novo usuário ao sistema</DialogDescription>
+               </DialogHeader>
+               <div className="space-y-4 py-4">
+                 <div className="space-y-2">
+                   <Label htmlFor="create-name">Nome *</Label>
+                   <Input id="create-name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Nome completo" required />
+                 </div>
+                 <div className="space-y-2">
+                   <Label htmlFor="create-password">Senha *</Label>
+                   <Input id="create-password" type="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} placeholder="Mínimo 8 caracteres" required />
+                 </div>
+                 <div className="space-y-2">
+                   <Label htmlFor="create-role">Função</Label>
+                   <select id="create-role" className="input-like-select" value={formData.is_superuser ? 'admin' : 'user'} onChange={(e) => setFormData({ ...formData, is_superuser: e.target.value === 'admin' })}>
+                     <option value="user">Usuário</option>
+                     <option value="admin">Administrador</option>
+                   </select>
+                 </div>
+               </div>
+              <DialogFooter>
+                 <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancelar</Button>
+                 <Button onClick={handleCreate} disabled={createUserMutation.isPending}>
+                   {createUserMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                   Criar
+                 </Button>
+              </DialogFooter>
+             </DialogContent>
            </Dialog>
          </div>
       </CardHeader>
@@ -270,20 +256,19 @@ export const UsersManagement = () => {
         </div>
 
         {/* Tabela */}
-        <div className="rounded-md border relative">
-          {isFetching && !isLoading && ( // Indicador Fetching (exceto no loading inicial)
-              <div className="absolute inset-0 bg-background/50 flex justify-center items-center z-10">
-                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              </div>
+        <div className="rounded-md border relative w-full overflow-auto">
+          {isFetching && !isLoading && ( 
+             <div className="absolute inset-0 bg-background/50 flex justify-center items-center z-10">
+                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
+             </div>
           )}
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[120px]">ID</TableHead>
+                <TableHead className="w-[120px] hidden sm:table-cell">ID</TableHead>
                 <TableHead>Nome</TableHead>
                 <TableHead>Função</TableHead>
-                <TableHead>Status</TableHead>
-                {/* <TableHead>Criado em</TableHead> */}
+                <TableHead className="hidden md:table-cell">Status</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -296,31 +281,30 @@ export const UsersManagement = () => {
                 </TableRow>
               ) : (
                 filteredUsers.map((user) => (
-                   <TableRow key={user.id}>
-                     <TableCell className="font-mono text-xs truncate" title={user.id}>{user.id.substring(0,8)}...</TableCell>
-                     <TableCell className="font-medium">{user.name}</TableCell>
-                     <TableCell>
-                       <Badge variant={user.role === "admin" ? "default" : "secondary"}>
-                         {user.role === "admin" ? "Admin" : "Usuário"}
-                       </Badge>
-                     </TableCell>
-                     <TableCell>
-                       <Badge variant={user.status === "active" ? "default" : "outline"}>
-                         {user.status === "active" ? "Ativo" : "Inativo"}
-                       </Badge>
-                     </TableCell>
-                     {/* <TableCell>{user.created_at_display || "-"}</TableCell> */}
-                     <TableCell className="text-right">
-                       <div className="flex justify-end gap-1">
-                         <Button variant="ghost" size="icon" onClick={() => openEditDialog(user)} disabled={updateUserMutation.isPending || deleteUserMutation.isPending}>
-                           <Pencil className="h-4 w-4" />
-                         </Button>
-                         <Button variant="ghost" size="icon" onClick={() => handleDelete(user)} disabled={updateUserMutation.isPending || deleteUserMutation.isPending || deleteUserMutation.variables === user.id}>
-                            {deleteUserMutation.isPending && deleteUserMutation.variables === user.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4 text-destructive" />}
-                         </Button>
-                       </div>
-                     </TableCell>
-                   </TableRow>
+                    <TableRow key={user.id}>
+                      <TableCell className="font-mono text-xs truncate hidden sm:table-cell" title={user.id}>{user.id.substring(0,8)}...</TableCell>
+                      <TableCell className="font-medium">{user.name}</TableCell>
+                      <TableCell>
+                        <Badge variant={user.role === "admin" ? "default" : "secondary"}>
+                          {user.role === "admin" ? "Admin" : "Usuário"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        <Badge variant={user.status === "active" ? "default" : "outline"}>
+                          {user.status === "active" ? "Ativo" : "Inativo"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                           <Button variant="ghost" size="icon" onClick={() => openEditDialog(user)} disabled={updateUserMutation.isPending || deleteUserMutation.isPending}>
+                             <Pencil className="h-4 w-4" />
+                           </Button>
+                           <Button variant="ghost" size="icon" onClick={() => handleDelete(user)} disabled={updateUserMutation.isPending || deleteUserMutation.isPending || deleteUserMutation.variables === user.id}>
+                             {deleteUserMutation.isPending && deleteUserMutation.variables === user.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4 text-destructive" />}
+                           </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
                 ))
               )}
             </TableBody>
@@ -329,99 +313,102 @@ export const UsersManagement = () => {
 
         {/* Paginação */}
         {totalPages > 1 && (
-            <div className="mt-4 flex flex-col items-center gap-2">
-              <Pagination>
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious href="#" onClick={(e) => { e.preventDefault(); handlePageChange(currentPage - 1); }} aria-disabled={currentPage === 1} className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}/>
-                  </PaginationItem>
-                   {(() => {
-                     const pageNumbers = [];
-                     const maxPagesToShow = 5;
-                     const halfMax = Math.floor(maxPagesToShow / 2);
-                     if (totalPages <= maxPagesToShow + 2) {
-                        for (let i = 1; i <= totalPages; i++) pageNumbers.push(i);
-                     } else {
-                        pageNumbers.push(1);
-                        let startPage = Math.max(2, currentPage - halfMax);
-                        let endPage = Math.min(totalPages - 1, currentPage + halfMax);
-                        if (currentPage <= halfMax + 1) endPage = maxPagesToShow + 1;
-                        if (currentPage >= totalPages - halfMax) startPage = totalPages - maxPagesToShow;
-                        if (startPage > 2) pageNumbers.push(-1);
-                        for (let i = startPage; i <= endPage; i++) pageNumbers.push(i);
-                        if (endPage < totalPages - 1) pageNumbers.push(-1);
-                        pageNumbers.push(totalPages);
-                     }
-                     return pageNumbers.map((pageNum, index) => (
-                        pageNum === -1 ? (
-                           <PaginationItem key={`ellipsis-${index}`}><PaginationEllipsis /></PaginationItem>
-                        ) : (
-                           <PaginationItem key={pageNum}><PaginationLink href="#" onClick={(e) => { e.preventDefault(); handlePageChange(pageNum); }} isActive={currentPage === pageNum} aria-current={currentPage === pageNum ? "page" : undefined}>{pageNum}</PaginationLink></PaginationItem>
-                        )
-                     ));
-                   })()}
-                  <PaginationItem>
-                    <PaginationNext href="#" onClick={(e) => { e.preventDefault(); handlePageChange(currentPage + 1); }} aria-disabled={currentPage === totalPages} className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}/>
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
+           <div className="mt-4 flex flex-col items-center gap-2">
+             <Pagination>
+               <PaginationContent>
+                 <PaginationItem>
+                   <PaginationPrevious href="#" onClick={(e) => { e.preventDefault(); handlePageChange(currentPage - 1); }} aria-disabled={currentPage === 1} className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}/>
+                 </PaginationItem>
+                 {(() => {
+                   const pageNumbers = [];
+                   const maxPagesToShow = 5;
+                   const halfMax = Math.floor(maxPagesToShow / 2);
+                   if (totalPages <= maxPagesToShow + 2) {
+                     for (let i = 1; i <= totalPages; i++) pageNumbers.push(i);
+                   } else {
+                     pageNumbers.push(1);
+                     let startPage = Math.max(2, currentPage - halfMax);
+                     let endPage = Math.min(totalPages - 1, currentPage + halfMax);
+                     if (currentPage <= halfMax + 1) endPage = maxPagesToShow + 1;
+                     if (currentPage >= totalPages - halfMax) startPage = totalPages - maxPagesToShow;
+                     if (startPage > 2) pageNumbers.push(-1);
+                     for (let i = startPage; i <= endPage; i++) pageNumbers.push(i);
+                     if (endPage < totalPages - 1) pageNumbers.push(-1);
+                     pageNumbers.push(totalPages);
+                   }
+                   return pageNumbers.map((pageNum, index) => (
+                     pageNum === -1 ? (
+                        <PaginationItem key={`ellipsis-${index}`}><PaginationEllipsis /></PaginationItem>
+                     ) : (
+                        <PaginationItem key={pageNum}><PaginationLink href="#" onClick={(e) => { e.preventDefault(); handlePageChange(pageNum); }} isActive={currentPage === pageNum} aria-current={currentPage === pageNum ? "page" : undefined}>{pageNum}</PaginationLink></PaginationItem>
+                     )
+                   ));
+                 })()}
+                 <PaginationItem>
+                   <PaginationNext href="#" onClick={(e) => { e.preventDefault(); handlePageChange(currentPage + 1); }} aria-disabled={currentPage === totalPages} className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}/>
+                 </PaginationItem>
+               </PaginationContent>
+             </Pagination>
                {totalItems > 0 && (
                  <p className="text-xs text-muted-foreground">
-                    Página {currentPage} de {totalPages} ({totalItems} {totalItems === 1 ? 'usuário' : 'usuários'} no total)
+                   Página {currentPage} de {totalPages} ({totalItems} {totalItems === 1 ? 'usuário' : 'usuários'} no total)
                  </p>
                )}
-            </div>
+           </div>
         )}
 
         {/* Dialog de Edição */}
         <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Editar Usuário</DialogTitle>
-                <DialogDescription>Atualize as informações de {selectedUser?.name}</DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-name">Nome</Label>
-                    <Input id="edit-name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Nome completo" required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-password">Nova Senha</Label>
-                    <Input id="edit-password" type="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} placeholder="Deixe em branco para manter a atual" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-role">Função</Label>
-                    <select id="edit-role" className="input-like-select" value={formData.is_superuser ? 'admin' : 'user'} onChange={(e) => setFormData({ ...formData, is_superuser: e.target.value === 'admin' })}>
-                      <option value="user">Usuário</option>
-                      <option value="admin">Administrador</option>
+             <DialogHeader>
+               <DialogTitle>Editar Usuário</DialogTitle>
+               <DialogDescription>Atualize as informações de {selectedUser?.name}</DialogDescription>
+             </DialogHeader>
+             <div className="space-y-4 py-4">
+                 <div className="space-y-2">
+                   <Label htmlFor="edit-name">Nome</Label>
+                   <Input id="edit-name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Nome completo" required />
+                 </div>
+                 <div className="space-y-2">
+                   <Label htmlFor="edit-password">Nova Senha</Label>
+                   <Input id="edit-password" type="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} placeholder="Deixe em branco para manter a atual" />
+                 </div>
+                 <div className="space-y-2">
+                   <Label htmlFor="edit-role">Função</Label>
+                   <select id="edit-role" className="input-like-select" value={formData.is_superuser ? 'admin' : 'user'} onChange={(e) => setFormData({ ...formData, is_superuser: e.target.value === 'admin' })}>
+                     <option value="user">Usuário</option>
+                     <option value="admin">Administrador</option>
+                   </select>
+                 </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="edit-status">Status</Label>
+                    <select id="edit-status" className="input-like-select" value={formData.is_active ? 'active' : 'inactive'} onChange={(e) => setFormData({ ...formData, is_active: e.target.value === 'active' })}>
+                        <option value="active">Ativo</option>
+                        <option value="inactive">Inativo</option>
                     </select>
-                  </div>
-                  <div className="space-y-2">
-                     <Label htmlFor="edit-status">Status</Label>
-                     <select id="edit-status" className="input-like-select" value={formData.is_active ? 'active' : 'inactive'} onChange={(e) => setFormData({ ...formData, is_active: e.target.value === 'active' })}>
-                         <option value="active">Ativo</option>
-                         <option value="inactive">Inativo</option>
-                     </select>
-                  </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsEditOpen(false)}>Cancelar</Button>
-                <Button onClick={handleEdit} disabled={updateUserMutation.isPending}>
-                   {updateUserMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                   Salvar
-                </Button>
-              </DialogFooter>
+                 </div>
+             </div>
+             <DialogFooter>
+               <Button variant="outline" onClick={() => setIsEditOpen(false)}>Cancelar</Button>
+               <Button onClick={handleEdit} disabled={updateUserMutation.isPending}>
+                  {updateUserMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Salvar
+               </Button>
+             </DialogFooter>
            </DialogContent>
         </Dialog>
       </CardContent>
 
-      {/* Estilo Select */}
+      {/* --- INÍCIO DA CORREÇÃO (Sintaxe) --- */}
+      {/* 5. Corrigir a string de URL truncada */}
       <style jsx global>{`
          .input-like-select {
              display: flex; height: 2.5rem; width: 100%; border-radius: 0.375rem; border: 1px solid hsl(var(--input)); background-color: hsl(var(--background)); padding-left: 0.75rem; padding-right: 2.5rem; padding-top: 0.5rem; padding-bottom: 0.5rem; font-size: 0.875rem; line-height: 1.25rem; outline: none; appearance: none; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); background-position: right 0.5rem center; background-repeat: no-repeat; background-size: 1.5em 1.5em;
          }
          .input-like-select:focus { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; border-color: hsl(var(--ring)); }
-        `}</style>
+      `}</style>
+      {/* --- FIM DA CORREÇÃO (Sintaxe) --- */}
     </Card>
   );
 };
+

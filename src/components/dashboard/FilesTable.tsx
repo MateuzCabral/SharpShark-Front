@@ -1,3 +1,4 @@
+// src/componentes/dashboard/FilesTable.tsx
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -7,10 +8,10 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
+} from "../../components/ui/table";
+import { Button } from "../../components/ui/button";
 import { Trash2, Loader2, AlertCircle, FileText, Info } from "lucide-react";
-import { getFiles, deleteFileById, FileRead } from "@/api/files";
+import { getFiles, deleteFileById, FileRead } from "../../api/files";
 import {
   Pagination,
   PaginationContent,
@@ -19,7 +20,7 @@ import {
   PaginationNext,
   PaginationPrevious,
   PaginationEllipsis
-} from "@/components/ui/pagination";
+} from "../../components/ui/pagination";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,7 +31,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+} from "../../components/ui/alert-dialog";
 import {
     Dialog,
     DialogContent,
@@ -39,12 +40,12 @@ import {
     DialogTitle,
     DialogFooter,
     DialogClose,
-} from "@/components/ui/dialog";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+} from "../../components/ui/dialog";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
 import { toast as sonnerToast } from "sonner";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
-import { formatUtcDateToBrazil } from "@/lib/utils"; // <-- 1. IMPORTAR HELPER
+import { Skeleton } from "../../components/ui/skeleton";
+import { Badge } from "../../components/ui/badge";
+import { formatUtcDateToBrazil } from "../../lib/utils";
 
 export const FilesTable = () => {
   const queryClient = useQueryClient();
@@ -54,7 +55,6 @@ export const FilesTable = () => {
   const [detailFile, setDetailFile] = useState<FileRead | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
 
-  // Busca de arquivos
   const { data, isLoading, error, isFetching, isError } = useQuery({
     queryKey: ['files', currentPage, itemsPerPage],
     queryFn: () => getFiles(currentPage, itemsPerPage),
@@ -65,7 +65,6 @@ export const FilesTable = () => {
   const totalPages = data?.pages ?? 0;
   const totalItems = data?.total ?? 0;
 
-  // Mutação para deletar
   const deleteFileMutation = useMutation({
       mutationFn: deleteFileById,
       onSuccess: (_, fileId) => {
@@ -95,34 +94,31 @@ export const FilesTable = () => {
       setIsDetailOpen(true);
   };
 
-  // --- 2. REMOVER FUNÇÃO ANTIGA ---
-  // const formatDateTime = (isoString: string | null | undefined): string => { ... };
-
   // Loading / Erro Cards (Definidos como componentes internos)
   const LoadingCard = () => (
-     <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
-        <CardHeader>
-            <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5 text-primary"/> Arquivos Enviados</CardTitle>
-            <CardDescription>Lista de todos os arquivos .pcap/.pcapng que foram enviados.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2 pt-4">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-        </CardContent>
-     </Card>
+      <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+          <CardHeader>
+              <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5 text-primary"/> Arquivos Enviados</CardTitle>
+              <CardDescription>Lista de todos os arquivos .pcap/.pcapng que foram enviados.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2 pt-4">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+          </CardContent>
+      </Card>
   );
 
   const ErrorCard = () => (
-     <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
-        <CardHeader>
-            <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5 text-primary"/> Arquivos Enviados</CardTitle>
-            <CardDescription>Lista de todos os arquivos .pcap/.pcapng que foram enviados.</CardDescription>
-        </CardHeader>
-        <CardContent className="flex justify-center items-center h-40 text-destructive">
-            <AlertCircle className="h-8 w-8 mr-2" /><span>Falha ao carregar arquivos. Tente atualizar.</span>
-        </CardContent>
-     </Card>
+      <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+          <CardHeader>
+              <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5 text-primary"/> Arquivos Enviados</CardTitle>
+              <CardDescription>Lista de todos os arquivos .pcap/.pcapng que foram enviados.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex justify-center items-center h-40 text-destructive">
+              <AlertCircle className="h-8 w-8 mr-2" /><span>Falha ao carregar arquivos. Tente atualizar.</span>
+          </CardContent>
+      </Card>
   );
 
   if (isLoading && !data) return <LoadingCard />;
@@ -142,52 +138,60 @@ export const FilesTable = () => {
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
             </div>
           )}
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome do Arquivo</TableHead>
-                <TableHead className="w-[100px]">Tamanho</TableHead>
-                <TableHead className="w-[180px]">Data Upload</TableHead>
-                <TableHead className="w-[150px]">Hash (Início)</TableHead>
-                <TableHead className="text-right w-[120px]">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {files.length === 0 ? (
-                <TableRow><TableCell colSpan={5} className="h-24 text-center text-muted-foreground">Nenhum arquivo encontrado.</TableCell></TableRow>
-              ) : (
-                files.map((file) => (
-                  <TableRow key={file.id}>
-                    <TableCell className="font-medium max-w-[250px] truncate" title={file.file_name}>{file.file_name}</TableCell>
-                    <TableCell>{file.file_size.toFixed(1)} MB</TableCell>
-                    <TableCell className="text-muted-foreground text-xs">
-                      {/* --- 3. USAR HELPER --- */}
-                      {formatUtcDateToBrazil(file.uploaded_at)}
-                    </TableCell>
-                    <TableCell className="font-mono text-xs" title={file.file_hash}>{file.file_hash.substring(0, 12)}...</TableCell>
-                    <TableCell className="text-right">
-                        {/* Botão Detalhes */}
-                        <Button variant="ghost" size="icon" title="Ver Detalhes do Arquivo" onClick={() => handleViewDetails(file)}>
-                            <Info className="h-4 w-4" />
-                        </Button>
-                        {/* Botão Deletar com Confirmação */}
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" title="Remover Arquivo e Análise" disabled={deleteFileMutation.isPending}>
-                                {deleteFileMutation.isPending && pendingDeleteId === file.id ? (<Loader2 className="h-4 w-4 animate-spin"/>) : (<Trash2 className="h-4 w-4 text-destructive" />)}
-                              </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader><AlertDialogTitle>Confirmar Remoção</AlertDialogTitle><AlertDialogDescription>Remover <span className="font-medium">{file.file_name}</span>? <br/><span className="font-bold text-destructive">A análise associada também será removida.</span></AlertDialogDescription></AlertDialogHeader>
-                            <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteConfirm(file.id)} className="bg-destructive hover:bg-destructive/90">{deleteFileMutation.isPending && pendingDeleteId === file.id ? "Removendo..." : "Remover"}</AlertDialogAction></AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+          {/* --- INÍCIO DA ALTERAÇÃO (Responsividade) --- */}
+          {/* 1. Adicionado div com overflow-auto para responsividade da tabela */}
+          <div className="relative w-full overflow-auto">
+          {/* --- FIM DA ALTERAÇÃO --- */}
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nome do Arquivo</TableHead>
+                  {/* --- INÍCIO DA ALTERAÇÃO (Responsividade) --- */}
+                  {/* 2. Ocultar colunas em telas pequenas (md) */}
+                  <TableHead className="w-[100px] hidden md:table-cell">Tamanho</TableHead>
+                  <TableHead className="w-[180px] hidden md:table-cell">Data Upload (SP)</TableHead>
+                  <TableHead className="w-[150px] hidden md:table-cell">Hash (Início)</TableHead>
+                  {/* --- FIM DA ALTERAÇÃO --- */}
+                  <TableHead className="text-right w-[120px]">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {files.length === 0 ? (
+                  <TableRow><TableCell colSpan={5} className="h-24 text-center text-muted-foreground">Nenhum arquivo encontrado.</TableCell></TableRow>
+                ) : (
+                  files.map((file) => (
+                    <TableRow key={file.id}>
+                      <TableCell className="font-medium max-w-[250px] truncate" title={file.file_name}>{file.file_name}</TableCell>
+                      {/* --- INÍCIO DA ALTERAÇÃO (Responsividade) --- */}
+                      {/* 3. Ocultar colunas em telas pequenas (md) */}
+                      <TableCell className="hidden md:table-cell">{file.file_size.toFixed(1)} MB</TableCell>
+                      <TableCell className="text-muted-foreground text-xs hidden md:table-cell">{formatUtcDateToBrazil(file.uploaded_at)}</TableCell>
+                      <TableCell className="font-mono text-xs hidden md:table-cell" title={file.file_hash}>{file.file_hash.substring(0, 12)}...</TableCell>
+                      {/* --- FIM DA ALTERAÇÃO --- */}
+                      <TableCell className="text-right">
+                          <Button variant="ghost" size="icon" title="Ver Detalhes do Arquivo" onClick={() => handleViewDetails(file)}>
+                              <Info className="h-4 w-4" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon" title="Remover Arquivo e Análise" disabled={deleteFileMutation.isPending}>
+                                  {deleteFileMutation.isPending && pendingDeleteId === file.id ? (<Loader2 className="h-4 w-4 animate-spin"/>) : (<Trash2 className="h-4 w-4 text-destructive" />)}
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader><AlertDialogTitle>Confirmar Remoção</AlertDialogTitle><AlertDialogDescription>Remover <span className="font-medium">{file.file_name}</span>? <br/><span className="font-bold text-destructive">A análise associada também será removida.</span></AlertDialogDescription></AlertDialogHeader>
+                              <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteConfirm(file.id)} className="bg-destructive hover:bg-destructive/90">{deleteFileMutation.isPending && pendingDeleteId === file.id ? "Removendo..." : "Remover"}</AlertDialogAction></AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          {/* --- INÍCIO DA ALTERAÇÃO (Responsividade) --- */}
+          </div> {/* 4. Fechamento do div overflow-auto */}
+          {/* --- FIM DA ALTERAÇÃO --- */}
         </div>
 
         {/* Paginação */}
@@ -206,27 +210,23 @@ export const FilesTable = () => {
 
         {/* Modal de Detalhes do Arquivo */}
         <Dialog open={isDetailOpen && !!detailFile} onOpenChange={setIsDetailOpen}>
-           <DialogContent className="max-w-xl">
-               <DialogHeader><DialogTitle className="flex items-center gap-2"><Info className="h-5 w-5 text-primary"/> Detalhes do Arquivo</DialogTitle><DialogDescription>Informações sobre o arquivo enviado.</DialogDescription></DialogHeader>
-               {detailFile && (
-                   <div className="space-y-3 py-4 text-sm">
-                       <div><span className="font-medium text-muted-foreground w-24 inline-block">Nome:</span> {detailFile.file_name}</div>
-                       <div><span className="font-medium text-muted-foreground w-24 inline-block">ID:</span> <code className="text-xs">{detailFile.id}</code></div>
-                       <div><span className="font-medium text-muted-foreground w-24 inline-block">Tamanho:</span> {detailFile.file_size.toFixed(2)} MB</div>
-                       <div>
-                         <span className="font-medium text-muted-foreground w-24 inline-block">Upload:</span> 
-                         {/* --- 4. USAR HELPER AQUI TAMBÉM --- */}
-                         {formatUtcDateToBrazil(detailFile.uploaded_at)}
-                       </div>
-                       <div><span className="font-medium text-muted-foreground w-24 inline-block">Usuário ID:</span> <code className="text-xs">{detailFile.user_id}</code></div>
-                       <div className="pt-2"><span className="font-medium text-muted-foreground w-24 inline-block">Hash SHA256:</span> <code className="text-xs break-all">{detailFile.file_hash}</code></div>
-                   </div>
-               )}
-               <DialogFooter><DialogClose asChild><Button variant="outline">Fechar</Button></DialogClose></DialogFooter>
-           </DialogContent>
-         </Dialog>
-
+          <DialogContent className="max-w-xl">
+              <DialogHeader><DialogTitle className="flex items-center gap-2"><Info className="h-5 w-5 text-primary"/> Detalhes do Arquivo</DialogTitle><DialogDescription>Informações sobre o arquivo enviado.</DialogDescription></DialogHeader>
+              {detailFile && (
+                  <div className="space-y-3 py-4 text-sm">
+                      <div><span className="font-medium text-muted-foreground w-24 inline-block">Nome:</span> {detailFile.file_name}</div>
+                      <div><span className="font-medium text-muted-foreground w-24 inline-block">ID:</span> <code className="text-xs">{detailFile.id}</code></div>
+                      <div><span className="font-medium text-muted-foreground w-24 inline-block">Tamanho:</span> {detailFile.file_size.toFixed(2)} MB</div>
+                      <div><span className="font-medium text-muted-foreground w-24 inline-block">Upload:</span> {formatUtcDateToBrazil(detailFile.uploaded_at)} (SP)</div>
+                      <div><span className="font-medium text-muted-foreground w-24 inline-block">Usuário ID:</span> <code className="text-xs">{detailFile.user_id}</code></div>
+                      <div className="pt-2"><span className="font-medium text-muted-foreground w-24 inline-block">Hash SHA256:</span> <code className="text-xs break-all">{detailFile.file_hash}</code></div>
+                  </div>
+              )}
+              <DialogFooter><DialogClose asChild><Button variant="outline">Fechar</Button></DialogClose></DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );
 };
+

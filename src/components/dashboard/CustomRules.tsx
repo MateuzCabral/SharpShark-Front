@@ -1,6 +1,7 @@
 // src/componentes/dashboard/CustomRules.tsx
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+// --- INÍCIO DA ALTERAÇÃO (Caminhos) ---
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,9 +9,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { toast as sonnerToast } from "sonner"; // Usando sonner
+import { toast as sonnerToast } from "sonner"; 
 import { Plus, Trash2, Shield, Loader2, AlertCircle } from "lucide-react";
-import { getRules, createRule, deleteRule, CustomRuleRead, CustomRuleCreate, SeverityType, RuleType } from "@/api/rules"; // Integração
+import { getRules, createRule, deleteRule, CustomRuleRead, CustomRuleCreate, SeverityType, RuleType } from "@/api/rules"; 
 import {
   Pagination,
   PaginationContent,
@@ -19,9 +20,10 @@ import {
   PaginationNext,
   PaginationPrevious,
   PaginationEllipsis
-} from "@/components/ui/pagination"; // Integração
-import { AccessDeniedMessage } from "@/components/AccessDeniedMessage"; // Importar
-import { AxiosError } from "axios"; // Importar
+} from "@/components/ui/pagination"; 
+import { AccessDeniedMessage } from "@/components/AccessDeniedMessage"; 
+import { AxiosError } from "axios"; 
+// --- FIM DA ALTERAÇÃO (Caminhos) ---
 
 export const CustomRules = () => {
   const queryClient = useQueryClient();
@@ -36,15 +38,14 @@ export const CustomRules = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  // Integração: Fetch rules com React Query
-  const { data, isLoading, error, isFetching, isError } = useQuery({ // Adicionado isError
+  const { data, isLoading, error, isFetching, isError } = useQuery({ 
     queryKey: ['rules', currentPage, itemsPerPage],
     queryFn: () => getRules(currentPage, itemsPerPage),
     placeholderData: (previousData) => previousData,
-    retry: (failureCount, error) => { // Não retenta em erro 403
+    retry: (failureCount, error) => { 
         if (error instanceof AxiosError && error.response?.status === 403) {
-            console.log("Access Denied (403) for rules, not retrying.");
-            return false;
+           console.log("Access Denied (403) for rules, not retrying.");
+           return false;
         }
         return failureCount < 3;
     }
@@ -54,43 +55,36 @@ export const CustomRules = () => {
   const totalPages = data?.pages ?? 0;
   const totalItems = data?.total ?? 0;
 
-   // Integração: Mutações
    const mutationOptions = {
-      onSuccess: () => {
-         queryClient.invalidateQueries({ queryKey: ['rules'] });
-      },
-      onError: (error: any) => {
-         // Verifica se o erro é de validação (422) vindo do Pydantic
-         if (error instanceof AxiosError && error.response?.status === 422 && error.response?.data?.detail) {
-             // Tenta formatar a mensagem de erro de validação
-             try {
-                 const validationErrors = error.response.data.detail;
-                 let errorMsg = "Erro de validação:";
-                 validationErrors.forEach((err: any) => {
-                     // Ajusta para pegar o nome do campo corretamente
-                     const fieldName = err.loc && err.loc.length > 1 ? err.loc[1] : 'Campo';
-                     // Mapeia nomes técnicos para nomes amigáveis (opcional)
-                     const friendlyFieldName = {
-                         name: "Nome da Regra",
-                         rule_type: "Tipo de Regra",
-                         value: "Valor",
-                         alert_type: "Tipo de Alerta",
-                         severity: "Severidade"
-                     }[fieldName] || fieldName;
-                     errorMsg += `\n- ${friendlyFieldName}: ${err.msg}`;
-                 });
-                 sonnerToast.error("Dados Inválidos", { description: <pre className="whitespace-pre-wrap">{errorMsg}</pre> });
-             } catch (_) {
-                 // Fallback se a formatação falhar
-                 sonnerToast.error("Dados Inválidos", { description: JSON.stringify(error.response.data.detail) });
-             }
-         } else {
-             // Erro genérico
-             sonnerToast.error("Operação falhou", {
-                 description: error.response?.data?.detail || error.message || "Ocorreu um erro.",
+     onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['rules'] });
+     },
+     onError: (error: any) => {
+       if (error instanceof AxiosError && error.response?.status === 422 && error.response?.data?.detail) {
+           try {
+             const validationErrors = error.response.data.detail;
+             let errorMsg = "Erro de validação:";
+             validationErrors.forEach((err: any) => {
+                const fieldName = err.loc && err.loc.length > 1 ? err.loc[1] : 'Campo';
+                const friendlyFieldName = {
+                   name: "Nome da Regra",
+                   rule_type: "Tipo de Regra",
+                   value: "Valor",
+                   alert_type: "Tipo de Alerta",
+                   severity: "Severidade"
+                }[fieldName] || fieldName;
+                errorMsg += `\n- ${friendlyFieldName}: ${err.msg}`;
              });
-         }
-      },
+             sonnerToast.error("Dados Inválidos", { description: <pre className="whitespace-pre-wrap">{errorMsg}</pre> });
+           } catch (_) {
+             sonnerToast.error("Dados Inválidos", { description: JSON.stringify(error.response.data.detail) });
+           }
+       } else {
+           sonnerToast.error("Operação falhou", {
+              description: error.response?.data?.detail || error.message || "Ocorreu um erro.",
+           });
+       }
+     },
    };
 
   const createRuleMutation = useMutation({
@@ -109,9 +103,9 @@ export const CustomRules = () => {
   const deleteRuleMutation = useMutation({
     mutationFn: deleteRule,
     ...mutationOptions,
-     onSuccess: (_, ruleId) => { // Segundo arg é o ID
+     onSuccess: (_, ruleId) => { 
         mutationOptions.onSuccess();
-        sonnerToast.error("Regra removida", { // Usando variant error
+        sonnerToast.error("Regra removida", { 
            description: `A regra (ID: ${ruleId}) foi removida.`,
         });
      }
@@ -119,7 +113,6 @@ export const CustomRules = () => {
 
   // Handlers
   const handleCreate = () => {
-     // Validações básicas (o backend fará validações mais robustas via Pydantic)
      if (!formData.name || !formData.value || !formData.alert_type) {
        sonnerToast.warning("Campos obrigatórios", { description: "Nome, Valor e Tipo de Alerta são necessários." });
        return;
@@ -150,18 +143,12 @@ export const CustomRules = () => {
   };
 
   // --- TRATAMENTO DE ESTADOS ---
-
-  // Loading Inicial
-   if (isLoading && !isError) {
+  if (isLoading && !isError) {
     return <Card><CardContent className="flex justify-center items-center h-60"><Loader2 className="h-8 w-8 animate-spin text-primary" /><span className="ml-2">Carregando regras...</span></CardContent></Card>;
   }
-
-  // Erro 403 (Acesso Negado)
   if (isError && error instanceof AxiosError && error.response?.status === 403) {
-     return <AccessDeniedMessage resourceName="as regras customizadas" />;
+    return <AccessDeniedMessage resourceName="as regras customizadas" />;
   }
-
-  // Outro Erro
   if (isError && !(error instanceof AxiosError && error.response?.status === 403)) {
      console.error("Erro ao carregar regras:", error);
      return <Card><CardContent className="flex justify-center items-center h-60 text-destructive"><AlertCircle className="h-8 w-8 mr-2" /><span>Falha ao carregar regras.</span></CardContent></Card>;
@@ -170,11 +157,10 @@ export const CustomRules = () => {
   // --- RENDERIZAÇÃO NORMAL ---
   return (
     <Card className="relative">
-       {/* Indicador de Fetching */}
        {isFetching && !isLoading &&(
-          <div className="absolute inset-0 bg-background/50 flex justify-center items-center z-10 rounded-lg">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-          </div>
+         <div className="absolute inset-0 bg-background/50 flex justify-center items-center z-10 rounded-lg">
+             <Loader2 className="h-6 w-6 animate-spin text-primary" />
+         </div>
        )}
       <CardHeader>
         <div className="flex items-center justify-between">
@@ -233,8 +219,8 @@ export const CustomRules = () => {
               <DialogFooter>
                  <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancelar</Button>
                  <Button onClick={handleCreate} disabled={createRuleMutation.isPending}>
-                    {createRuleMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Criar Regra
+                   {createRuleMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                   Criar Regra
                  </Button>
               </DialogFooter>
             </DialogContent>
@@ -242,15 +228,21 @@ export const CustomRules = () => {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="rounded-md border relative">
+        {/* --- INÍCIO DA ALTERAÇÃO (Responsividade) --- */}
+        {/* 1. Adicionado div com overflow-auto para responsividade da tabela */}
+        <div className="rounded-md border relative w-full overflow-auto">
+        {/* --- FIM DA ALTERAÇÃO --- */}
 
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Nome</TableHead>
                 <TableHead>Tipo</TableHead>
-                <TableHead>Valor</TableHead>
-                <TableHead>Alerta Gerado</TableHead>
+                {/* --- INÍCIO DA ALTERAÇÃO (Responsividade) --- */}
+                {/* 2. Ocultar colunas em telas pequenas (md) */}
+                <TableHead className="hidden md:table-cell">Valor</TableHead>
+                <TableHead className="hidden md:table-cell">Alerta Gerado</TableHead>
+                {/* --- FIM DA ALTERAÇÃO --- */}
                 <TableHead>Severidade</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
@@ -258,7 +250,9 @@ export const CustomRules = () => {
             <TableBody>
               {rules.length === 0 ? (
                 <TableRow>
+                  {/* --- INÍCIO DA ALTERAÇÃO (Responsividade) --- */}
                   <TableCell colSpan={6} className="text-center text-muted-foreground h-24">
+                  {/* --- FIM DA ALTERAÇÃO --- */}
                     Nenhuma regra customizada criada
                   </TableCell>
                 </TableRow>
@@ -271,8 +265,11 @@ export const CustomRules = () => {
                         {rule.rule_type === "payload" ? "Payload" : "Porta"}
                       </Badge>
                     </TableCell>
-                    <TableCell className="font-mono text-xs max-w-[150px] truncate" title={rule.value}>{rule.value}</TableCell>
-                    <TableCell className="font-mono text-xs">{rule.alert_type}</TableCell>
+                    {/* --- INÍCIO DA ALTERAÇÃO (Responsividade) --- */}
+                    {/* 3. Ocultar colunas em telas pequenas (md) */}
+                    <TableCell className="font-mono text-xs max-w-[150px] truncate hidden md:table-cell" title={rule.value}>{rule.value}</TableCell>
+                    <TableCell className="font-mono text-xs hidden md:table-cell">{rule.alert_type}</TableCell>
+                    {/* --- FIM DA ALTERAÇÃO --- */}
                     <TableCell>
                       <Badge variant={getSeverityColor(rule.severity)}>
                         {rule.severity.charAt(0).toUpperCase() + rule.severity.slice(1)}
@@ -297,32 +294,34 @@ export const CustomRules = () => {
               )}
             </TableBody>
           </Table>
-        </div>
+        {/* --- INÍCIO DA ALTERAÇÃO (Responsividade) --- */}
+        </div> {/* 4. Fechamento do div overflow-auto */}
+        {/* --- FIM DA ALTERAÇÃO --- */}
 
          {/* Paginação */}
         {totalPages > 1 && (
            <div className="mt-4 flex flex-col items-center gap-2">
-              <Pagination>
-                 <PaginationContent>
-                    <PaginationItem>
-                       <PaginationPrevious href="#" onClick={(e) => { e.preventDefault(); handlePageChange(currentPage - 1); }} aria-disabled={currentPage === 1} className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}/>
-                    </PaginationItem>
-                     {(() => {
-                        const pageNumbers = []; const maxPagesToShow = 5; const halfMax = Math.floor(maxPagesToShow / 2);
-                        if (totalPages <= maxPagesToShow + 2) { for (let i = 1; i <= totalPages; i++) pageNumbers.push(i); } else {
-                           pageNumbers.push(1); let startPage = Math.max(2, currentPage - halfMax); let endPage = Math.min(totalPages - 1, currentPage + halfMax);
-                           if (currentPage <= halfMax + 1) endPage = maxPagesToShow + 1; if (currentPage >= totalPages - halfMax) startPage = totalPages - maxPagesToShow;
-                           if (startPage > 2) pageNumbers.push(-1); for (let i = startPage; i <= endPage; i++) pageNumbers.push(i);
-                           if (endPage < totalPages - 1) pageNumbers.push(-1); pageNumbers.push(totalPages);
-                        }
-                        return pageNumbers.map((pageNum, index) => ( pageNum === -1 ? (<PaginationItem key={`ellipsis-${index}`}><PaginationEllipsis /></PaginationItem>) : (<PaginationItem key={pageNum}><PaginationLink href="#" onClick={(e) => { e.preventDefault(); handlePageChange(pageNum); }} isActive={currentPage === pageNum} aria-current={currentPage === pageNum ? "page" : undefined}>{pageNum}</PaginationLink></PaginationItem>) ));
-                     })()}
-                    <PaginationItem>
-                       <PaginationNext href="#" onClick={(e) => { e.preventDefault(); handlePageChange(currentPage + 1); }} aria-disabled={currentPage === totalPages} className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}/>
-                    </PaginationItem>
-                 </PaginationContent>
-              </Pagination>
-              {totalItems > 0 && ( <p className="text-xs text-muted-foreground"> Página {currentPage} de {totalPages} ({totalItems} {totalItems === 1 ? 'regra' : 'regras'} no total) </p> )}
+             <Pagination>
+               <PaginationContent>
+                 <PaginationItem>
+                    <PaginationPrevious href="#" onClick={(e) => { e.preventDefault(); handlePageChange(currentPage - 1); }} aria-disabled={currentPage === 1} className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}/>
+                 </PaginationItem>
+                 {(() => {
+                    const pageNumbers = []; const maxPagesToShow = 5; const halfMax = Math.floor(maxPagesToShow / 2);
+                    if (totalPages <= maxPagesToShow + 2) { for (let i = 1; i <= totalPages; i++) pageNumbers.push(i); } else {
+                       pageNumbers.push(1); let startPage = Math.max(2, currentPage - halfMax); let endPage = Math.min(totalPages - 1, currentPage + halfMax);
+                       if (currentPage <= halfMax + 1) endPage = maxPagesToShow + 1; if (currentPage >= totalPages - halfMax) startPage = totalPages - maxPagesToShow;
+                       if (startPage > 2) pageNumbers.push(-1); for (let i = startPage; i <= endPage; i++) pageNumbers.push(i);
+                       if (endPage < totalPages - 1) pageNumbers.push(-1); pageNumbers.push(totalPages);
+                    }
+                    return pageNumbers.map((pageNum, index) => ( pageNum === -1 ? (<PaginationItem key={`ellipsis-${index}`}><PaginationEllipsis /></PaginationItem>) : (<PaginationItem key={pageNum}><PaginationLink href="#" onClick={(e) => { e.preventDefault(); handlePageChange(pageNum); }} isActive={currentPage === pageNum} aria-current={currentPage === pageNum ? "page" : undefined}>{pageNum}</PaginationLink></PaginationItem>) ));
+                 })()}
+                 <PaginationItem>
+                    <PaginationNext href="#" onClick={(e) => { e.preventDefault(); handlePageChange(currentPage + 1); }} aria-disabled={currentPage === totalPages} className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}/>
+                 </PaginationItem>
+               </PaginationContent>
+             </Pagination>
+             {totalItems > 0 && ( <p className="text-xs text-muted-foreground"> Página {currentPage} de {totalPages} ({totalItems} {totalItems === 1 ? 'regra' : 'regras'} no total) </p> )}
            </div>
         )}
       </CardContent>
@@ -331,7 +330,8 @@ export const CustomRules = () => {
        <style jsx global>{`
          .input-like-select { display: flex; height: 2.5rem; width: 100%; border-radius: 0.375rem; border: 1px solid hsl(var(--input)); background-color: hsl(var(--background)); padding-left: 0.75rem; padding-right: 2.5rem; padding-top: 0.5rem; padding-bottom: 0.5rem; font-size: 0.875rem; line-height: 1.25rem; outline: none; appearance: none; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); background-position: right 0.5rem center; background-repeat: no-repeat; background-size: 1.5em 1.5em; }
          .input-like-select:focus { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; border-color: hsl(var(--ring)); }
-        `}</style>
+       `}</style>
     </Card>
   );
 };
+

@@ -1,22 +1,23 @@
 // src/pages/Dashboard.tsx
-import { useState, useEffect } from "react"; // 1. Importar useEffect
+import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
-import { Badge } from "../components/ui/badge";
-import { Button } from "../components/ui/button";
-import { Skeleton } from "../components/ui/skeleton";
-// --- INÍCIO DA ALTERAÇÃO ---
-// 2. Importar componentes do Select e toast
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../components/ui/select";
-import { toast as sonnerToast } from "sonner";
+} from "@/components/ui/select";
+// --- INÍCIO DA ALTERAÇÃO (Responsividade) ---
+// 1. Importar ScrollArea para as abas
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"; 
 // --- FIM DA ALTERAÇÃO ---
+import { toast as sonnerToast } from "sonner";
 import {
   Activity, AlertTriangle, Globe, Network, TrendingUp, RefreshCw, FileText, Settings, Users, Shield, Loader2, LogOut, UploadCloud, Timer
 } from "lucide-react";
@@ -31,57 +32,42 @@ import { FilesTable } from "@/components/dashboard/FilesTable";
 import { UsersManagement } from "@/components/dashboard/UsersManagement";
 import { SettingsManagement } from "@/components/dashboard/SettingsManagement";
 import { CustomRules } from "@/components/dashboard/CustomRules";
-import { getDashboardStats } from "../api/stats";
-import { logoutUser } from "../api/auth";
+import { getDashboardStats } from "@/api/stats"; // Corrigido para @/
+import { logoutUser } from "@/api/auth"; // Corrigido para @/
 
-// --- INÍCIO DA ALTERAÇÃO ---
-// 3. Definir os valores de intervalo
 const pollingOptions = [
   { label: "Desligado", value: 0 },
   { label: "10 Segundos", value: 10000 },
   { label: "30 Segundos", value: 30000 },
   { label: "1 Minuto", value: 60000 },
 ];
-// --- FIM DA ALTERAÇÃO ---
 
 const Dashboard = () => {
   const queryClient = useQueryClient();
   const [isRefreshing, setIsRefreshing] = useState(false);
-  // --- INÍCIO DA ALTERAÇÃO ---
-  // 4. Estado para controlar o intervalo de polling (0 = desligado)
   const [pollingInterval, setPollingInterval] = useState(0);
-  // --- FIM DA ALTERAÇÃO ---
 
-  // Busca dados agregados do dashboard
   const { data: statsData, isLoading: isLoadingStats, isFetching: isFetchingStats, error: errorStats, isError: isErrorStats } = useQuery({
     queryKey: ['dashboardStats'],
     queryFn: getDashboardStats,
-    // --- INÍCIO DA ALTERAÇÃO ---
-    // 5. Aplicar o intervalo de polling a esta query
     refetchInterval: pollingInterval,
-    // --- FIM DA ALTERAÇÃO ---
   });
 
-  // Handler para atualizar
   const handleRefresh = async () => {
     setIsRefreshing(true);
     sonnerToast.info("Atualizando todos os dados...");
-    await queryClient.invalidateQueries(); // Invalida TODAS as queries
+    await queryClient.invalidateQueries();
     setTimeout(() => setIsRefreshing(false), 500);
   };
 
-  // Handler para Sair
   const handleLogout = () => {
      logoutUser();
   };
   
-  // --- INÍCIO DA ALTERAÇÃO ---
-  // 6. Handler para mudar o intervalo de polling
   const handlePollingChange = (value: string) => {
     const interval = parseInt(value, 10);
     setPollingInterval(interval);
 
-    // Atualiza o refetchInterval padrão para TODAS as queries
     queryClient.setDefaultOptions({
       queries: {
         refetchInterval: interval,
@@ -97,10 +83,8 @@ const Dashboard = () => {
     }
   };
   
-  // 7. Garantir que, ao sair, o polling seja desligado
   useEffect(() => {
     return () => {
-      // Quando o componente for desmontado (logout), reseta o padrão
       queryClient.setDefaultOptions({
         queries: {
           refetchInterval: 0,
@@ -108,14 +92,17 @@ const Dashboard = () => {
       });
     };
   }, [queryClient]);
-  // --- FIM DA ALTERAÇÃO ---
 
 
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
        <header className="border-b border-border/50 bg-card/30 backdrop-blur-sm sticky top-0 z-10">
-         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+         {/* --- INÍCIO DA ALTERAÇÃO (Responsividade) --- */}
+         {/* 2. Aplicar flex-col e sm:flex-row para empilhar em telas pequenas */}
+         <div className="container mx-auto px-4 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-2">
+           {/* --- FIM DA ALTERAÇÃO --- */}
+           
            {/* Logo e Título */}
            <div className="flex items-center gap-3">
              <Shield className="h-8 w-8 text-primary" strokeWidth={1.5} />
@@ -124,39 +111,43 @@ const Dashboard = () => {
                  <p className="text-xs text-muted-foreground">Sistema de Análise de Tráfego e Segurança</p>
              </div>
            </div>
+           
            {/* Botões */}
-          <div className="flex items-center gap-3">
-            
-            {/* --- INÍCIO DA ALTERAÇÃO --- */}
-            {/* 8. Adicionar o Seletor de Polling */}
-            <div className="flex items-center gap-2">
-              <Timer className="h-4 w-4 text-muted-foreground" />
-              <Select
-                value={pollingInterval.toString()}
-                onValueChange={handlePollingChange}
-              >
-                <SelectTrigger className="w-[120px] h-9 text-xs" title="Intervalo de atualização">
-                  <SelectValue placeholder="Atualização" />
-                </SelectTrigger>
-                <SelectContent>
-                  {pollingOptions.map(option => (
-                    <SelectItem key={option.value} value={option.value.toString()} className="text-xs">
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {/* --- FIM DA ALTERAÇÃO --- */}
+           {/* --- INÍCIO DA ALTERAÇÃO (Responsividade) --- */}
+           {/* 3. Ajustar espaçamento e largura para modo empilhado */}
+           <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+           {/* --- FIM DA ALTERAÇÃO --- */}
+           
+             <div className="flex items-center gap-2">
+               <Timer className="h-4 w-4 text-muted-foreground" />
+               <Select
+                 value={pollingInterval.toString()}
+                 onValueChange={handlePollingChange}
+               >
+                 <SelectTrigger className="w-[120px] h-9 text-xs" title="Intervalo de atualização">
+                   <SelectValue placeholder="Atualização" />
+                 </SelectTrigger>
+                 <SelectContent>
+                   {pollingOptions.map(option => (
+                     <SelectItem key={option.value} value={option.value.toString()} className="text-xs">
+                       {option.label}
+                     </SelectItem>
+                   ))}
+                 </SelectContent>
+               </Select>
+             </div>
 
-            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing || isFetchingStats} className="gap-2" title="Atualizar dados">
+             <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing || isFetchingStats} className="gap-2" title="Atualizar dados">
                <RefreshCw className={`h-4 w-4 ${(isRefreshing || isFetchingStats) ? "animate-spin" : ""}`} />
-               {(isRefreshing || isFetchingStats) ? "Atualizando..." : "Atualizar"}
-            </Button>
-            <Button variant="outline" size="sm" className="gap-2 text-destructive border-destructive/50 hover:bg-destructive/10 hover:text-destructive" onClick={handleLogout} title="Sair">
-               <LogOut className="h-4 w-4" /> Sair
-            </Button>
-          </div>
+               {/* 4. Ocultar texto em telas pequenas */}
+               <span className="hidden sm:inline">{(isRefreshing || isFetchingStats) ? "Atualizando..." : "Atualizar"}</span>
+             </Button>
+             <Button variant="outline" size="sm" className="gap-2 text-destructive border-destructive/50 hover:bg-destructive/10 hover:text-destructive" onClick={handleLogout} title="Sair">
+               <LogOut className="h-4 w-4" />
+               {/* 4. Ocultar texto em telas pequenas */}
+               <span className="hidden sm:inline">Sair</span>
+             </Button>
+           </div>
          </div>
        </header>
 
@@ -167,7 +158,7 @@ const Dashboard = () => {
              <Card className="border-destructive/50 bg-destructive/10"><CardContent className="p-4 flex items-center gap-2 text-destructive"><AlertTriangle className="h-5 w-5"/><p className="text-sm font-medium">Erro ao carregar estatísticas.</p></CardContent></Card>
         )}
 
-        {/* Stats Cards */}
+        {/* Stats Cards (Já responsivo) */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {isLoadingStats ? (
              <>
@@ -186,17 +177,25 @@ const Dashboard = () => {
 
         {/* Abas Principais */}
         <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList className="bg-card/50 border border-border/50">
-             <TabsTrigger value="overview"><TrendingUp className="mr-1 h-4 w-4"/>Visão Geral</TabsTrigger>
-             <TabsTrigger value="files"><UploadCloud className="mr-1 h-4 w-4"/>Arquivos</TabsTrigger>
-             <TabsTrigger value="analyses"><FileText className="mr-1 h-4 w-4"/>Análises</TabsTrigger>
-             <TabsTrigger value="alerts"><AlertTriangle className="mr-1 h-4 w-4"/>Alertas</TabsTrigger>
-             <TabsTrigger value="users"><Users className="mr-1 h-4 w-4"/>Usuários</TabsTrigger>
-             <TabsTrigger value="rules"><Shield className="mr-1 h-4 w-4"/>Regras</TabsTrigger>
-             <TabsTrigger value="settings"><Settings className="mr-1 h-4 w-4"/>Configurações</TabsTrigger>
-          </TabsList>
+          
+          {/* --- INÍCIO DA ALTERAÇÃO (Responsividade) --- */}
+          {/* 5. Envolver TabsList com ScrollArea */}
+          <ScrollArea className="w-full whitespace-nowrap rounded-md">
+            <TabsList className="bg-card/50 border border-border/50">
+               <TabsTrigger value="overview"><TrendingUp className="mr-1 h-4 w-4"/>Visão Geral</TabsTrigger>
+               <TabsTrigger value="files"><UploadCloud className="mr-1 h-4 w-4"/>Arquivos</TabsTrigger>
+               <TabsTrigger value="analyses"><FileText className="mr-1 h-4 w-4"/>Análises</TabsTrigger>
+               <TabsTrigger value="alerts"><AlertTriangle className="mr-1 h-4 w-4"/>Alertas</TabsTrigger>
+               <TabsTrigger value="users"><Users className="mr-1 h-4 w-4"/>Usuários</TabsTrigger>
+               <TabsTrigger value="rules"><Shield className="mr-1 h-4 w-4"/>Regras</TabsTrigger>
+               <TabsTrigger value="settings"><Settings className="mr-1 h-4 w-4"/>Configurações</TabsTrigger>
+            </TabsList>
+            <ScrollBar orientation="horizontal" className="h-2" />
+          </ScrollArea>
+          {/* --- FIM DA ALTERAÇÃO --- */}
 
-          {/* Aba: Visão Geral */}
+
+          {/* Aba: Visão Geral (Gráficos já são responsivos) */}
           <TabsContent value="overview" className="space-y-4">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                <Card className="border-border/50 bg-card/50 backdrop-blur-sm"><CardHeader><CardTitle className="flex items-center gap-2"><TrendingUp className="h-5 w-5 text-primary" /> Tráfego</CardTitle><CardDescription>Pacotes/hora (24h)</CardDescription></CardHeader><CardContent>{isLoadingStats ? <Skeleton className="h-[300px]"/> : <TrafficChart data={statsData?.trafficLast24h ?? []} />}</CardContent></Card>

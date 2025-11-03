@@ -1,8 +1,6 @@
 // src/componentes/dashboard/AlertsTable.tsx
 import { useState } from "react";
-// --- INÍCIO DA ALTERAÇÃO ---
 import { useQuery } from "@tanstack/react-query";
-// 1. Importar componentes de Dialog, ScrollArea, e Skeleton (em vez de Textarea)
 import {
   Dialog,
   DialogContent,
@@ -11,10 +9,9 @@ import {
   DialogTitle,
   DialogFooter,
   DialogClose,
-} from "../../components/ui/dialog";
-import { ScrollArea } from "../../components/ui/scroll-area";
-import { Skeleton } from "../../components/ui/skeleton";
-// --- FIM DA ALTERAÇÃO ---
+} from "../../components/ui/dialog"; // Corrigido para ../../
+import { ScrollArea } from "../../components/ui/scroll-area"; // Corrigido para ../../
+import { Skeleton } from "../../components/ui/skeleton"; // Corrigido para ../../
 import {
   Table,
   TableBody,
@@ -22,15 +19,12 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "../../components/ui/table";
-import { Badge } from "../../components/ui/badge";
-import { Button } from "../../components/ui/button";
+} from "../../components/ui/table"; // Corrigido para ../../
+import { Badge } from "../../components/ui/badge"; // Corrigido para ../../
+import { Button } from "../../components/ui/button"; // Corrigido para ../../
 import { Eye, Loader2, AlertCircle } from "lucide-react";
-// --- INÍCIO DA ALTERAÇÃO ---
-// 2. Importar getStreamContent (e corrigir caminho)
-import { getAlerts, AlertRead, getAnalysisAlerts } from "../../api/alerts"; 
-import { getStreamContent } from "../../api/analyses"; 
-// --- FIM DA ALTERAÇÃO ---
+import { getAlerts, AlertRead, getAnalysisAlerts } from "../../api/alerts"; // Corrigido para ../../
+import { getStreamContent } from "../../api/analyses"; // Corrigido para ../../
 import {
   Pagination,
   PaginationContent,
@@ -39,14 +33,13 @@ import {
   PaginationNext,
   PaginationPrevious,
   PaginationEllipsis
-} from "../../components/ui/pagination"; 
+} from "../../components/ui/pagination"; // Corrigido para ../../
 
 interface AlertsTableProps {
-  limit?: number; // Para exibição limitada (ex: Overview)
-  analysisId?: string; // Para buscar alertas de uma análise específica
+  limit?: number; 
+  analysisId?: string; 
 }
 
-// Mapeamento de severidade
 const severityColors: Record<string, "destructive" | "default" | "secondary" | "outline"> = {
   critical: "destructive",
   high: "destructive",
@@ -54,17 +47,13 @@ const severityColors: Record<string, "destructive" | "default" | "secondary" | "
   low: "secondary",
 };
 
-// --- INÍCIO DA ALTERAÇÃO ---
-/**
- * Componente interno para buscar e exibir o conteúdo do stream
- */
 const StreamContent = ({ streamId }: { streamId: string }) => {
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ['streamContent', streamId], // Chave única por stream
-    queryFn: () => getStreamContent(streamId), // Função da API
-    enabled: !!streamId, // Só executa se streamId existir
-    staleTime: 5 * 60 * 1000, // Cache de 5 minutos
-    retry: 1, // Tenta 1 vez
+    queryKey: ['streamContent', streamId], 
+    queryFn: () => getStreamContent(streamId), 
+    enabled: !!streamId, 
+    staleTime: 5 * 60 * 1000, 
+    retry: 1, 
   });
 
   if (isLoading) {
@@ -98,7 +87,6 @@ const StreamContent = ({ streamId }: { streamId: string }) => {
     <div className="mt-4 space-y-2">
       <p className="text-sm font-medium text-muted-foreground">Conteúdo do Stream (Texto Plano)</p>
       <ScrollArea className="h-64 w-full rounded-md border bg-muted/30 p-3">
-        {/* Usar <pre> para manter quebras de linha e espaços */}
         <pre className="text-xs text-foreground whitespace-pre-wrap break-words">
           {data || "Stream vazio ou sem conteúdo legível."}
         </pre>
@@ -106,17 +94,13 @@ const StreamContent = ({ streamId }: { streamId: string }) => {
     </div>
   );
 };
-// --- FIM DA ALTERAÇÃO ---
 
 
 export const AlertsTable = ({ limit, analysisId }: AlertsTableProps) => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = limit ?? 10;
-  // --- INÍCIO DA ALTERAÇÃO ---
-  // 3. Estado para controlar o modal de detalhes do alerta
   const [selectedAlert, setSelectedAlert] = useState<AlertRead | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
-  // --- FIM DA ALTERAÇÃO ---
 
   const { data, isLoading, error, isFetching } = useQuery({
     queryKey: ['alerts', analysisId, currentPage, itemsPerPage],
@@ -140,17 +124,12 @@ export const AlertsTable = ({ limit, analysisId }: AlertsTableProps) => {
     }
   };
 
-   // --- INÍCIO DA ALTERAÇÃO ---
-   // 4. Mudar handler para usar modal
    const handleViewDetails = (alertData: AlertRead) => {
       console.log("View details for alert:", alertData);
       setSelectedAlert(alertData);
       setIsDetailOpen(true);
-      // O window.alert() foi removido
    };
-   // --- FIM DA ALTERAÇÃO ---
 
-  // Loading e Erro (sem alterações)
   if (isLoading && !data) {
     return (
       <div className="flex justify-center items-center h-40 text-muted-foreground">
@@ -169,61 +148,78 @@ export const AlertsTable = ({ limit, analysisId }: AlertsTableProps) => {
     );
   }
 
-  // Tabela
   return (
     <div className="space-y-4">
-      <div className="rounded-md border border-border/50 relative overflow-hidden">
-       {isFetching && (
+      {/* --- INÍCIO DA ALTERAÇÃO (Responsividade) --- */}
+      {/* 1. overflow-hidden removido, pois o Table agora está dentro de um div com overflow-auto */}
+      <div className="rounded-md border border-border/50 relative">
+       {/* --- FIM DA ALTERAÇÃO --- */}
+       {isFetching && ( 
           <div className="absolute inset-0 bg-background/60 backdrop-blur-sm flex justify-center items-center z-10">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
               <span className="ml-2 text-sm text-muted-foreground">Atualizando...</span>
           </div>
        )}
-        <Table>
-          <TableHeader>
-            <TableRow className="hover:bg-muted/50 border-b border-border/50">
-              <TableHead>Tipo</TableHead>
-              <TableHead>Severidade</TableHead>
-              <TableHead>IP Origem</TableHead>
-              <TableHead>IP Destino</TableHead>
-              <TableHead>Porta</TableHead>
-              <TableHead>Protocolo</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {alerts.length === 0 ? (
-                 <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground h-24">
-                        Nenhum alerta encontrado{analysisId ? ' para esta análise' : ''}.
+        {/* --- INÍCIO DA ALTERAÇÃO (Responsividade) --- */}
+        {/* 2. Adicionado div com overflow-auto para responsividade da tabela */}
+        <div className="relative w-full overflow-auto">
+        {/* --- FIM DA ALTERAÇÃO --- */}
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-muted/50 border-b border-border/50">
+                <TableHead>Tipo</TableHead>
+                <TableHead>Severidade</TableHead>
+                <TableHead>IP Origem</TableHead>
+                {/* --- INÍCIO DA ALTERAÇÃO (Responsividade) --- */}
+                {/* 3. Ocultar colunas em telas pequenas (md) */}
+                <TableHead className="hidden md:table-cell">IP Destino</TableHead>
+                <TableHead className="hidden md:table-cell">Porta</TableHead>
+                <TableHead className="hidden md:table-cell">Protocolo</TableHead>
+                {/* --- FIM DA ALTERAÇÃO --- */}
+                <TableHead className="text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {alerts.length === 0 ? (
+                  <TableRow>
+                      {/* --- INÍCIO DA ALTERAÇÃO (Responsividade) --- */}
+                      {/* 4. Ajustar colSpan para o número de colunas visíveis */}
+                      <TableCell colSpan={7} className="text-center text-muted-foreground h-24">
+                      {/* --- FIM DA ALTERAÇÃO --- */}
+                          Nenhum alerta encontrado{analysisId ? ' para esta análise' : ''}.
+                      </TableCell>
+                  </TableRow>
+              ) : (
+                alerts.map((alert) => (
+                  <TableRow key={alert.id} className="hover:bg-muted/30">
+                    <TableCell className="font-medium max-w-[150px] truncate" title={alert.alert_type}>
+                      {alert.alert_type}
                     </TableCell>
-                 </TableRow>
-            ) : (
-              alerts.map((alert) => (
-                <TableRow key={alert.id} className="hover:bg-muted/30">
-                  <TableCell className="font-medium max-w-[150px] truncate" title={alert.alert_type}>
-                    {alert.alert_type}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={severityColors[alert.severity.toLowerCase()] || 'secondary'}>
-                      {alert.severity.charAt(0).toUpperCase() + alert.severity.slice(1)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="font-mono text-sm">{alert.src_ip || "-"}</TableCell>
-                  <TableCell className="font-mono text-sm">{alert.dst_ip || "-"}</TableCell>
-                  <TableCell>{alert.port ?? "-"}</TableCell>
-                  <TableCell>{alert.protocol || "-"}</TableCell>
-                  <TableCell className="text-right">
-                    {/* 5. onClick agora chama handleViewDetails */}
-                    <Button variant="ghost" size="icon" onClick={() => handleViewDetails(alert)} title="Ver Detalhes">
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+                    <TableCell>
+                      <Badge variant={severityColors[alert.severity.toLowerCase()] || 'secondary'}>
+                        {alert.severity.charAt(0).toUpperCase() + alert.severity.slice(1)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">{alert.src_ip || "-"}</TableCell>
+                    {/* --- INÍCIO DA ALTERAÇÃO (Responsividade) --- */}
+                    {/* 5. Ocultar colunas em telas pequenas (md) */}
+                    <TableCell className="font-mono text-sm hidden md:table-cell">{alert.dst_ip || "-"}</TableCell>
+                    <TableCell className="hidden md:table-cell">{alert.port ?? "-"}</TableCell>
+                    <TableCell className="hidden md:table-cell">{alert.protocol || "-"}</TableCell>
+                    {/* --- FIM DA ALTERAÇÃO --- */}
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="icon" onClick={() => handleViewDetails(alert)} title="Ver Detalhes">
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        {/* --- INÍCIO DA ALTERAÇÃO (Responsividade) --- */}
+        </div> {/* 6. Fechamento do div overflow-auto */}
+        {/* --- FIM DA ALTERAÇÃO --- */}
       </div>
 
        {/* Paginação e Sumário */}
@@ -298,11 +294,10 @@ export const AlertsTable = ({ limit, analysisId }: AlertsTableProps) => {
            </p>
        )}
 
-      {/* --- INÍCIO DA ALTERAÇÃO --- */}
-      {/* 6. Adicionar o Dialog de Detalhes do Alerta */}
+      {/* Modal de Detalhes do Alerta */}
       <Dialog open={isDetailOpen && !!selectedAlert} onOpenChange={(isOpen) => {
           if (!isOpen) {
-            setSelectedAlert(null); // Limpa o estado ao fechar
+            setSelectedAlert(null);
           }
           setIsDetailOpen(isOpen);
         }}>
@@ -318,10 +313,11 @@ export const AlertsTable = ({ limit, analysisId }: AlertsTableProps) => {
           </DialogHeader>
           
           {selectedAlert && (
-            // Adicionado max-h e overflow-y para o caso de streams muito longos
             <div className="space-y-3 py-4 text-sm max-h-[70vh] overflow-y-auto pr-2">
-              {/* Detalhes estáticos */}
+              {/* --- INÍCIO DA ALTERAÇÃO (Responsividade) --- */}
+              {/* 6. Grid responsivo no modal (sm) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
+              {/* --- FIM DA ALTERAÇÃO --- */}
                 <div><span className="font-medium text-muted-foreground w-24 inline-block">Tipo:</span> {selectedAlert.alert_type}</div>
                 <div><span className="font-medium text-muted-foreground w-24 inline-block">Severidade:</span> 
                   <Badge variant={severityColors[selectedAlert.severity.toLowerCase()] || 'secondary'}>
@@ -336,15 +332,14 @@ export const AlertsTable = ({ limit, analysisId }: AlertsTableProps) => {
                 {selectedAlert.stream_id && <div><span className="font-medium text-muted-foreground w-24 inline-block">Stream ID:</span> <code className="text-xs">{selectedAlert.stream_id}</code></div>}
               </div>
               
-              {/* Evidência */}
               {selectedAlert.evidence && (
                 <div className="space-y-1 pt-2">
                   <span className="font-medium text-muted-foreground w-24 inline-block">Evidência:</span>
                   <p className="text-xs p-2 rounded-md bg-muted/50 border italic text-foreground">{selectedAlert.evidence}</p>
+
                 </div>
               )}
 
-              {/* Conteúdo do Stream (buscado dinamicamente) */}
               {selectedAlert.stream_id && (
                 <StreamContent streamId={selectedAlert.stream_id} />
               )}
@@ -358,7 +353,7 @@ export const AlertsTable = ({ limit, analysisId }: AlertsTableProps) => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      {/* --- FIM DA ALTERAÇÃO --- */}
     </div>
   );
 };
+
