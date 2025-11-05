@@ -1,4 +1,3 @@
-// src/componentes/dashboard/UploadArea.tsx
 import { useState, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,7 +15,6 @@ import { toast as sonnerToast } from "sonner";
 import { uploadFile } from "@/api/files";
 import { useQueryClient } from "@tanstack/react-query";
 
-// Interface para histórico
 interface UploadHistoryItem {
   name: string;
   status: "success" | "error";
@@ -73,12 +71,11 @@ export const UploadArea = () => {
 
       setUploadHistory((prev) => [
         { name: fileToUpload.name, status: "success", timestamp: new Date().toLocaleString("pt-BR") },
-        ...prev.slice(0, 4), // Mantém histórico dos últimos 5
+        ...prev.slice(0, 4),
       ]);
       sonnerToast.success(`Upload concluído`, { description: `${fileToUpload.name} enviado.` });
       console.log("Resposta upload:", response);
 
-      // Invalida queries para atualizar tabelas relevantes
       queryClient.invalidateQueries({ queryKey: ['files'] });
       queryClient.invalidateQueries({ queryKey: ['analyses'] });
       queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
@@ -100,7 +97,6 @@ export const UploadArea = () => {
 
   return (
     <div className="space-y-6">
-      {/* Upload Manual Card */}
       <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><FileUp className="h-5 w-5 text-primary" /> Upload Manual</CardTitle>
@@ -122,7 +118,6 @@ export const UploadArea = () => {
         </CardContent>
       </Card>
 
-      {/* Histórico Recente */}
       {uploadHistory.length > 0 && (
         <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
           <CardHeader><CardTitle className="text-lg">Histórico Recente de Uploads</CardTitle></CardHeader>

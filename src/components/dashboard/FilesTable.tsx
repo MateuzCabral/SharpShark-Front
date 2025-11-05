@@ -1,4 +1,3 @@
-// src/componentes/dashboard/FilesTable.tsx
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -94,7 +93,6 @@ export const FilesTable = () => {
       setIsDetailOpen(true);
   };
 
-  // Loading / Erro Cards (Definidos como componentes internos)
   const LoadingCard = () => (
       <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
           <CardHeader>
@@ -131,27 +129,20 @@ export const FilesTable = () => {
         <CardDescription>Lista de arquivos .pcap/.pcapng enviados.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Tabela */}
         <div className="rounded-md border relative">
           {isFetching && !isLoading && (
             <div className="absolute inset-0 bg-background/50 flex justify-center items-center z-10 rounded-md">
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
             </div>
           )}
-          {/* --- INÍCIO DA ALTERAÇÃO (Responsividade) --- */}
-          {/* 1. Adicionado div com overflow-auto para responsividade da tabela */}
           <div className="relative w-full overflow-auto">
-          {/* --- FIM DA ALTERAÇÃO --- */}
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Nome do Arquivo</TableHead>
-                  {/* --- INÍCIO DA ALTERAÇÃO (Responsividade) --- */}
-                  {/* 2. Ocultar colunas em telas pequenas (md) */}
                   <TableHead className="w-[100px] hidden md:table-cell">Tamanho</TableHead>
                   <TableHead className="w-[180px] hidden md:table-cell">Data Upload (SP)</TableHead>
                   <TableHead className="w-[150px] hidden md:table-cell">Hash (Início)</TableHead>
-                  {/* --- FIM DA ALTERAÇÃO --- */}
                   <TableHead className="text-right w-[120px]">Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -162,12 +153,9 @@ export const FilesTable = () => {
                   files.map((file) => (
                     <TableRow key={file.id}>
                       <TableCell className="font-medium max-w-[250px] truncate" title={file.file_name}>{file.file_name}</TableCell>
-                      {/* --- INÍCIO DA ALTERAÇÃO (Responsividade) --- */}
-                      {/* 3. Ocultar colunas em telas pequenas (md) */}
                       <TableCell className="hidden md:table-cell">{file.file_size.toFixed(1)} MB</TableCell>
                       <TableCell className="text-muted-foreground text-xs hidden md:table-cell">{formatUtcDateToBrazil(file.uploaded_at)}</TableCell>
                       <TableCell className="font-mono text-xs hidden md:table-cell" title={file.file_hash}>{file.file_hash.substring(0, 12)}...</TableCell>
-                      {/* --- FIM DA ALTERAÇÃO --- */}
                       <TableCell className="text-right">
                           <Button variant="ghost" size="icon" title="Ver Detalhes do Arquivo" onClick={() => handleViewDetails(file)}>
                               <Info className="h-4 w-4" />
@@ -189,12 +177,9 @@ export const FilesTable = () => {
                 )}
               </TableBody>
             </Table>
-          {/* --- INÍCIO DA ALTERAÇÃO (Responsividade) --- */}
-          </div> {/* 4. Fechamento do div overflow-auto */}
-          {/* --- FIM DA ALTERAÇÃO --- */}
+          </div>
         </div>
 
-        {/* Paginação */}
         {totalPages > 1 && (
            <div className="flex flex-col items-center gap-2">
              <Pagination>
@@ -208,7 +193,6 @@ export const FilesTable = () => {
            </div>
         )}
 
-        {/* Modal de Detalhes do Arquivo */}
         <Dialog open={isDetailOpen && !!detailFile} onOpenChange={setIsDetailOpen}>
           <DialogContent className="max-w-xl">
               <DialogHeader><DialogTitle className="flex items-center gap-2"><Info className="h-5 w-5 text-primary"/> Detalhes do Arquivo</DialogTitle><DialogDescription>Informações sobre o arquivo enviado.</DialogDescription></DialogHeader>

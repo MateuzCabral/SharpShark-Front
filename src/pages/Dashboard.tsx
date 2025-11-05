@@ -1,4 +1,3 @@
-// src/pages/Dashboard.tsx
 import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,10 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-// --- INÍCIO DA ALTERAÇÃO (Responsividade) ---
-// 1. Importar ScrollArea para as abas
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"; 
-// --- FIM DA ALTERAÇÃO ---
 import { toast as sonnerToast } from "sonner";
 import {
   Activity, AlertTriangle, Globe, Network, TrendingUp, RefreshCw, FileText, Settings, Users, Shield, Loader2, LogOut, UploadCloud, Timer
@@ -32,8 +28,8 @@ import { FilesTable } from "@/components/dashboard/FilesTable";
 import { UsersManagement } from "@/components/dashboard/UsersManagement";
 import { SettingsManagement } from "@/components/dashboard/SettingsManagement";
 import { CustomRules } from "@/components/dashboard/CustomRules";
-import { getDashboardStats } from "@/api/stats"; // Corrigido para @/
-import { logoutUser } from "@/api/auth"; // Corrigido para @/
+import { getDashboardStats } from "@/api/stats";
+import { logoutUser } from "@/api/auth";
 
 const pollingOptions = [
   { label: "Desligado", value: 0 },
@@ -96,14 +92,9 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
        <header className="border-b border-border/50 bg-card/30 backdrop-blur-sm sticky top-0 z-10">
-         {/* --- INÍCIO DA ALTERAÇÃO (Responsividade) --- */}
-         {/* 2. Aplicar flex-col e sm:flex-row para empilhar em telas pequenas */}
          <div className="container mx-auto px-4 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-2">
-           {/* --- FIM DA ALTERAÇÃO --- */}
-           
-           {/* Logo e Título */}
+
            <div className="flex items-center gap-3">
              <Shield className="h-8 w-8 text-primary" strokeWidth={1.5} />
              <div>
@@ -112,11 +103,7 @@ const Dashboard = () => {
              </div>
            </div>
            
-           {/* Botões */}
-           {/* --- INÍCIO DA ALTERAÇÃO (Responsividade) --- */}
-           {/* 3. Ajustar espaçamento e largura para modo empilhado */}
            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-           {/* --- FIM DA ALTERAÇÃO --- */}
            
              <div className="flex items-center gap-2">
                <Timer className="h-4 w-4 text-muted-foreground" />
@@ -139,26 +126,21 @@ const Dashboard = () => {
 
              <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing || isFetchingStats} className="gap-2" title="Atualizar dados">
                <RefreshCw className={`h-4 w-4 ${(isRefreshing || isFetchingStats) ? "animate-spin" : ""}`} />
-               {/* 4. Ocultar texto em telas pequenas */}
                <span className="hidden sm:inline">{(isRefreshing || isFetchingStats) ? "Atualizando..." : "Atualizar"}</span>
              </Button>
              <Button variant="outline" size="sm" className="gap-2 text-destructive border-destructive/50 hover:bg-destructive/10 hover:text-destructive" onClick={handleLogout} title="Sair">
                <LogOut className="h-4 w-4" />
-               {/* 4. Ocultar texto em telas pequenas */}
                <span className="hidden sm:inline">Sair</span>
              </Button>
            </div>
          </div>
        </header>
 
-      {/* Conteúdo Principal */}
       <main className="container mx-auto px-4 py-6 space-y-6">
-        {/* Erro Stats */}
         {isErrorStats && !isLoadingStats && (
              <Card className="border-destructive/50 bg-destructive/10"><CardContent className="p-4 flex items-center gap-2 text-destructive"><AlertTriangle className="h-5 w-5"/><p className="text-sm font-medium">Erro ao carregar estatísticas.</p></CardContent></Card>
         )}
 
-        {/* Stats Cards (Já responsivo) */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {isLoadingStats ? (
              <>
@@ -175,11 +157,8 @@ const Dashboard = () => {
           )}
         </div>
 
-        {/* Abas Principais */}
         <Tabs defaultValue="overview" className="space-y-4">
           
-          {/* --- INÍCIO DA ALTERAÇÃO (Responsividade) --- */}
-          {/* 5. Envolver TabsList com ScrollArea */}
           <ScrollArea className="w-full whitespace-nowrap rounded-md">
             <TabsList className="bg-card/50 border border-border/50">
                <TabsTrigger value="overview"><TrendingUp className="mr-1 h-4 w-4"/>Visão Geral</TabsTrigger>
@@ -192,10 +171,7 @@ const Dashboard = () => {
             </TabsList>
             <ScrollBar orientation="horizontal" className="h-2" />
           </ScrollArea>
-          {/* --- FIM DA ALTERAÇÃO --- */}
 
-
-          {/* Aba: Visão Geral (Gráficos já são responsivos) */}
           <TabsContent value="overview" className="space-y-4">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                <Card className="border-border/50 bg-card/50 backdrop-blur-sm"><CardHeader><CardTitle className="flex items-center gap-2"><TrendingUp className="h-5 w-5 text-primary" /> Tráfego</CardTitle><CardDescription>Pacotes/hora (24h)</CardDescription></CardHeader><CardContent>{isLoadingStats ? <Skeleton className="h-[300px]"/> : <TrafficChart data={statsData?.trafficLast24h ?? []} />}</CardContent></Card>
@@ -207,7 +183,6 @@ const Dashboard = () => {
             </Card>
           </TabsContent>
 
-          {/* Outras Abas */}
           <TabsContent value="files" className="space-y-6">
              <UploadArea />
              <HashSearch />

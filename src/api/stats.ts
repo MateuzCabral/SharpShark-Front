@@ -1,14 +1,12 @@
-// src/api/stats.ts
 import api from "./axios";
 
-// ... (Interfaces TrafficDataPoint, ProtocolDataPoint, DashboardStats - sem alterações) ...
 interface TrafficDataPoint {
-  time: string; // Ex: "14:00"
+  time: string;
   packets: number;
 }
 interface ProtocolDataPoint {
-  name: string; // Ex: "TCP"
-  value: number; // Contagem
+  name: string;
+  value: number;
 }
 export interface DashboardStats {
   totalPackets: { value: number };
@@ -19,7 +17,6 @@ export interface DashboardStats {
   protocolDistribution: ProtocolDataPoint[];
 }
 
-// ... (Função getDashboardStats - sem alterações) ...
 export const getDashboardStats = async (): Promise<DashboardStats> => {
    try {
      const response = await api.get<DashboardStats>("/stats/dashboard/summary");
@@ -37,9 +34,6 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
    }
 };
 
-
-// --- INÍCIO DA ALTERAÇÃO ---
-// 1. Adicionar interface StatRead
 export interface StatRead {
   id: string;
   analysis_id: string;
@@ -48,20 +42,15 @@ export interface StatRead {
   count: number;
 }
 
-// 2. Adicionar nova função
 export const getStatsForAnalysis = async (analysisId: string): Promise<StatRead[]> => {
-  /**
-   * Busca todas as estatísticas brutas (objetos Stat) associadas a uma análise.
-   */
   try {
     const response = await api.get<StatRead[]>(`/stats/analysis/${analysisId}`);
     return response.data || [];
   } catch (error: any) {
     if (error.response && error.response.status === 404) {
-      return []; // Retorna lista vazia se a análise não tiver stats
+      return [];
     }
     console.error(`Failed to fetch stats for analysis ${analysisId}:`, error);
     throw error;
   }
 };
-// --- FIM DA ALTERAÇÃO ---

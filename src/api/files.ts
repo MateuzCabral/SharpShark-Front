@@ -1,4 +1,3 @@
-// src/api/files.ts
 import api from "./axios";
 import { PaginatedResponse } from "./analyses"; 
 
@@ -71,36 +70,27 @@ export const deleteFileById = async (fileId: string): Promise<void> => {
   }
 };
 
-// --- INÍCIO DA ALTERAÇÃO ---
-// 1. Reverter para a função de download de 'blob' (assíncrona)
 export const downloadPcapFile = async (fileId: string, fileName: string): Promise<void> => {
   try {
-    // Faz a requisição autenticada (interceptor do axios) esperando um 'blob'
     const response = await api.get(`/files/${fileId}/download`, {
       responseType: 'blob',
     });
 
-    // Cria uma URL de objeto para o blob recebido
     const url = window.URL.createObjectURL(new Blob([response.data]));
     
-    // Cria um link <a> invisível
     const link = document.createElement('a');
     link.href = url;
     
-    // Define o nome do arquivo para o download
     link.setAttribute('download', fileName);
     
-    // Adiciona, clica e remove o link
     document.body.appendChild(link);
     link.click();
     
-    // Limpa a URL do objeto
     link.remove();
     window.URL.revokeObjectURL(url);
 
   } catch (error) {
     console.error(`Erro ao baixar o arquivo ${fileId}:`, error);
-    throw error; // Relança para o componente (para mostrar o toast de erro)
+    throw error;
   }
 };
-// --- FIM DA ALTERAÇÃO ---

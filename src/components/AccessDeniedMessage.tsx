@@ -1,9 +1,8 @@
-// src/components/AccessDeniedMessage.tsx
 import { AlertTriangle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 
 interface AccessDeniedMessageProps {
-  resourceName?: string; // Nome opcional do recurso (ex: "usuários", "configurações")
+  resourceName?: string;
 }
 
 export const AccessDeniedMessage: React.FC<AccessDeniedMessageProps> = ({ resourceName }) => {

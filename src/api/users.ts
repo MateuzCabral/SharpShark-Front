@@ -1,14 +1,11 @@
-// src/api/users.ts
 import api from "./axios";
 import { PaginatedResponse } from "./analyses";
 
-// Integração: Tipos baseados nos Schemas Pydantic (UserRead, UserCreate, UserUpdate)
 export interface UserRead {
   id: string;
   name: string;
   is_active: boolean;
   is_superuser: boolean;
-  // Adicionar created_at se disponível (não está no schema)
   created_at?: string;
 }
 
@@ -21,12 +18,11 @@ export interface UserCreate {
 
 export interface UserUpdate {
   name?: string | null;
-  password?: string | null; // Enviar apenas se for alterar
+  password?: string | null;
   is_active?: boolean | null;
   is_superuser?: boolean | null;
 }
 
-// Integração: Funções da API
 export const getUsers = async (page = 1, size = 10): Promise<PaginatedResponse<UserRead>> => {
   const response = await api.get<PaginatedResponse<UserRead>>("/users/", {
     params: { page, size },
@@ -35,7 +31,6 @@ export const getUsers = async (page = 1, size = 10): Promise<PaginatedResponse<U
 };
 
 export const createUser = async (userData: UserCreate): Promise<UserRead> => {
-  // O endpoint é /users/register no backend
   const response = await api.post<UserRead>("/users/register", userData);
   return response.data;
 };

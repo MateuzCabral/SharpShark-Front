@@ -1,8 +1,5 @@
-// src/pages/AnalysisDetails.tsx
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-// --- INÍCIO DA ALTERAÇÃO ---
-// 1. Caminhos de importação corrigidos para usar o alias @/
 import { getAnalysisDetails, AnalysisRead, StatRead, IpRecordRead, getAnalysisIps } from "@/api/analyses";
 import { getStatsForAnalysis } from "@/api/stats";
 import { AlertsTable } from "@/components/dashboard/AlertsTable";
@@ -21,10 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ArrowLeft, Loader2, AlertCircle, FileText, Activity, Users, AlertTriangle } from "lucide-react";
 import { formatUtcDateToBrazil } from "@/lib/utils";
-// --- FIM DA ALTERAÇÃO ---
 
-
-// Mapeamento de status
 const statusConfig: Record<string, { variant: "default" | "secondary" | "destructive" | "outline", label: string }> = {
   completed: { variant: "default", label: "Concluída" },
   in_progress: { variant: "secondary", label: "Processando" },
@@ -32,7 +26,6 @@ const statusConfig: Record<string, { variant: "default" | "secondary" | "destruc
   failed: { variant: "destructive", label: "Falhou" },
 };
 
-// Componente interno para exibir Estatísticas (sem alteração)
 const StatsDisplay = ({ analysisId }: { analysisId: string }) => {
   const { data: stats, isLoading } = useQuery({
     queryKey: ['analysisStats', analysisId],
@@ -97,26 +90,21 @@ const StatsDisplay = ({ analysisId }: { analysisId: string }) => {
   );
 };
 
-// --- INÍCIO DA ALTERAÇÃO ---
-// 2. Componente IpDisplay refatorado para "Top 10"
 const IpDisplay = ({ analysisId }: { analysisId: string }) => {
   
-  // Query 1: Top 10 IPs de Origem (SRC)
   const { data: srcIpData, isLoading: isLoadingSrc } = useQuery({
-    queryKey: ['analysisIps', analysisId, 'SRC'], // Chave única para SRC
-    queryFn: () => getAnalysisIps(analysisId, "SRC", 1, 10), // Busca Top 10 SRC
+    queryKey: ['analysisIps', analysisId, 'SRC'],
+    queryFn: () => getAnalysisIps(analysisId, "SRC", 1, 10),
   });
 
-  // Query 2: Top 10 IPs de Destino (DST)
   const { data: dstIpData, isLoading: isLoadingDst } = useQuery({
-    queryKey: ['analysisIps', analysisId, 'DST'], // Chave única para DST
-    queryFn: () => getAnalysisIps(analysisId, "DST", 1, 10), // Busca Top 10 DST
+    queryKey: ['analysisIps', analysisId, 'DST'],
+    queryFn: () => getAnalysisIps(analysisId, "DST", 1, 10),
   });
 
   const srcIps = srcIpData?.items ?? [];
   const dstIps = dstIpData?.items ?? [];
 
-  // Estado de loading combinado
   if (isLoadingSrc || isLoadingDst) {
     return (
        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -130,7 +118,6 @@ const IpDisplay = ({ analysisId }: { analysisId: string }) => {
      return <p className="text-sm text-muted-foreground p-4">Nenhum registro de IP encontrado.</p>
   }
   
-  // Função helper para renderizar a tabela (agora mostra Top 10)
   const renderIpTable = (ipList: IpRecordRead[], title: string, isLoading: boolean) => (
      <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
         <CardHeader>
@@ -172,22 +159,17 @@ const IpDisplay = ({ analysisId }: { analysisId: string }) => {
     </div>
   );
 };
-// --- FIM DA ALTERAÇÃO ---
 
-
-// A Página Principal de Detalhes
 const AnalysisDetails = () => {
   const { analysisId } = useParams<{ analysisId: string }>();
   const navigate = useNavigate();
 
-  // Busca os dados principais da análise (sem 'ips' ou 'stats')
   const { data: analysis, isLoading, error } = useQuery({
     queryKey: ['analysisDetails', analysisId],
     queryFn: () => getAnalysisDetails(analysisId!),
     enabled: !!analysisId,
   });
 
-  // Loading
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-6 space-y-4">
@@ -202,7 +184,6 @@ const AnalysisDetails = () => {
     );
   }
 
-  // Erro
   if (error || !analysis) {
     return (
       <div className="container mx-auto px-4 py-6 space-y-4">
@@ -221,10 +202,8 @@ const AnalysisDetails = () => {
     );
   }
 
-  // Sucesso
   return (
     <div className="container mx-auto px-4 py-6 space-y-6">
-      {/* Header da Página */}
       <div className="flex items-center gap-4">
         <Button variant="outline" size="icon" onClick={() => navigate(-1)} className="shrink-0">
           <ArrowLeft className="h-4 w-4" />
@@ -238,7 +217,6 @@ const AnalysisDetails = () => {
         </div>
       </div>
 
-      {/* Sumário */}
       <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5 text-primary" /> Sumário da Análise</CardTitle>
@@ -279,40 +257,32 @@ const AnalysisDetails = () => {
         </CardContent>
       </Card>
       
-      {/* Estatísticas */}
       <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Activity className="h-5 w-5 text-primary" /> Estatísticas da Análise</CardTitle>
           <CardDescription>Protocolos, Portas e outros dados agregados desta análise.</CardDescription>
         </CardHeader>
         <CardContent>
-            {/* Usamos a query de stats separada */}
             <StatsDisplay analysisId={analysis.id} />
         </CardContent>
       </Card>
       
-      {/* --- INÍCIO DA ALTERAÇÃO --- */}
-      {/* 3. Endereços IP (agora passa apenas o ID) */}
       <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Users className="h-5 w-5 text-primary" /> Endereços IP</CardTitle>
           <CardDescription>Top 10 IPs de origem e destino encontrados nesta análise.</CardDescription>
         </CardHeader>
         <CardContent>
-            {/* Usamos o novo componente que busca seus próprios dados */}
             <IpDisplay analysisId={analysis.id} />
         </CardContent>
       </Card>
-      {/* --- FIM DA ALTERAÇÃO --- */}
 
-      {/* Alertas */}
       <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-destructive" /> Alertas da Análise</CardTitle>
           <CardDescription>Todos os alertas gerados especificamente para esta análise.</CardDescription>
         </CardHeader>
         <CardContent>
-          {/* Reutilizamos a tabela de alertas, passando o ID da análise */}
           <AlertsTable analysisId={analysis.id} />
         </CardContent>
       </Card>

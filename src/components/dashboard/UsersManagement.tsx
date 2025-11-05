@@ -1,5 +1,3 @@
-// Substitua este arquivo em: SharpShark-Front/src/components/dashboard/UsersManagement.tsx
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -7,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-// --- (MUDANÇA 1) ---
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,7 +16,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-// --- (FIM MUDANÇA 1) ---
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast as sonnerToast } from "sonner";
@@ -125,7 +121,6 @@ export const UsersManagement = () => {
       sonnerToast.error("Usuário removido", {
         description: `O usuário (ID: ${userId.substring(0, 8)}...) foi removido do sistema.`,
       });
-      // Se for o último item da página, volta para a página anterior
       if (users.length === 1 && currentPage > 1) {
         setCurrentPage(currentPage - 1);
       }
@@ -173,10 +168,6 @@ export const UsersManagement = () => {
     updateUserMutation.mutate({ userId: selectedUser.id, userData: updateData });
   };
 
-  // --- (MUDANÇA 2) ---
-  // A função 'handleDelete' foi removida.
-  // --- (FIM MUDANÇA 2) ---
-
   const openEditDialog = (user: UserDisplay) => {
     setSelectedUser(user);
     setFormData({ name: user.name, password: "", is_active: user.is_active, is_superuser: user.is_superuser });
@@ -219,7 +210,6 @@ export const UsersManagement = () => {
               <CardDescription>Criar, editar, visualizar e remover usuários</CardDescription>
             </div>
           </div>
-          {/* Dialog de Criação (sem mudança) */}
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild><Button><UserPlus className="mr-2 h-4 w-4" /> Novo Usuário</Button></DialogTrigger>
             <DialogContent>
@@ -256,7 +246,6 @@ export const UsersManagement = () => {
         </div>
       </CardHeader>
       <CardContent>
-        {/* Input de Busca (sem mudança) */}
         <div className="mb-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -269,7 +258,6 @@ export const UsersManagement = () => {
           </div>
         </div>
 
-        {/* Tabela */}
         <div className="rounded-md border relative w-full overflow-auto">
           {isFetching && !isLoading && (
             <div className="absolute inset-0 bg-background/50 flex justify-center items-center z-10">
@@ -314,7 +302,6 @@ export const UsersManagement = () => {
                           <Pencil className="h-4 w-4" />
                         </Button>
                         
-                        {/* --- (MUDANÇA 3) --- */}
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button
@@ -344,7 +331,6 @@ export const UsersManagement = () => {
                             </AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>
-                        {/* --- (FIM MUDANÇA 3) --- */}
                         
                       </div>
                     </TableCell>
@@ -355,7 +341,6 @@ export const UsersManagement = () => {
           </Table>
         </div>
 
-        {/* Paginação (sem mudança) */}
         {totalPages > 1 && (
           <div className="mt-4 flex flex-col items-center gap-2">
             <Pagination>
@@ -401,7 +386,6 @@ export const UsersManagement = () => {
           </div>
         )}
 
-        {/* Dialog de Edição (sem mudança) */}
         <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
           <DialogContent>
             <DialogHeader>

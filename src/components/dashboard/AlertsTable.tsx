@@ -1,4 +1,3 @@
-// src/componentes/dashboard/AlertsTable.tsx
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -9,9 +8,9 @@ import {
   DialogTitle,
   DialogFooter,
   DialogClose,
-} from "../../components/ui/dialog"; // Corrigido para ../../
-import { ScrollArea } from "../../components/ui/scroll-area"; // Corrigido para ../../
-import { Skeleton } from "../../components/ui/skeleton"; // Corrigido para ../../
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -19,12 +18,12 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "../../components/ui/table"; // Corrigido para ../../
-import { Badge } from "../../components/ui/badge"; // Corrigido para ../../
-import { Button } from "../../components/ui/button"; // Corrigido para ../../
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Eye, Loader2, AlertCircle } from "lucide-react";
-import { getAlerts, AlertRead, getAnalysisAlerts } from "../../api/alerts"; // Corrigido para ../../
-import { getStreamContent } from "../../api/analyses"; // Corrigido para ../../
+import { getAlerts, AlertRead, getAnalysisAlerts } from "@/api/alerts";
+import { getStreamContent } from "@/api/analyses";
 import {
   Pagination,
   PaginationContent,
@@ -33,7 +32,7 @@ import {
   PaginationNext,
   PaginationPrevious,
   PaginationEllipsis
-} from "../../components/ui/pagination"; // Corrigido para ../../
+} from "@/components/ui/pagination";
 
 interface AlertsTableProps {
   limit?: number; 
@@ -150,42 +149,30 @@ export const AlertsTable = ({ limit, analysisId }: AlertsTableProps) => {
 
   return (
     <div className="space-y-4">
-      {/* --- INÍCIO DA ALTERAÇÃO (Responsividade) --- */}
-      {/* 1. overflow-hidden removido, pois o Table agora está dentro de um div com overflow-auto */}
       <div className="rounded-md border border-border/50 relative">
-       {/* --- FIM DA ALTERAÇÃO --- */}
        {isFetching && ( 
           <div className="absolute inset-0 bg-background/60 backdrop-blur-sm flex justify-center items-center z-10">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
               <span className="ml-2 text-sm text-muted-foreground">Atualizando...</span>
           </div>
        )}
-        {/* --- INÍCIO DA ALTERAÇÃO (Responsividade) --- */}
-        {/* 2. Adicionado div com overflow-auto para responsividade da tabela */}
         <div className="relative w-full overflow-auto">
-        {/* --- FIM DA ALTERAÇÃO --- */}
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-muted/50 border-b border-border/50">
                 <TableHead>Tipo</TableHead>
                 <TableHead>Severidade</TableHead>
                 <TableHead>IP Origem</TableHead>
-                {/* --- INÍCIO DA ALTERAÇÃO (Responsividade) --- */}
-                {/* 3. Ocultar colunas em telas pequenas (md) */}
                 <TableHead className="hidden md:table-cell">IP Destino</TableHead>
                 <TableHead className="hidden md:table-cell">Porta</TableHead>
                 <TableHead className="hidden md:table-cell">Protocolo</TableHead>
-                {/* --- FIM DA ALTERAÇÃO --- */}
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {alerts.length === 0 ? (
                   <TableRow>
-                      {/* --- INÍCIO DA ALTERAÇÃO (Responsividade) --- */}
-                      {/* 4. Ajustar colSpan para o número de colunas visíveis */}
                       <TableCell colSpan={7} className="text-center text-muted-foreground h-24">
-                      {/* --- FIM DA ALTERAÇÃO --- */}
                           Nenhum alerta encontrado{analysisId ? ' para esta análise' : ''}.
                       </TableCell>
                   </TableRow>
@@ -201,12 +188,9 @@ export const AlertsTable = ({ limit, analysisId }: AlertsTableProps) => {
                       </Badge>
                     </TableCell>
                     <TableCell className="font-mono text-sm">{alert.src_ip || "-"}</TableCell>
-                    {/* --- INÍCIO DA ALTERAÇÃO (Responsividade) --- */}
-                    {/* 5. Ocultar colunas em telas pequenas (md) */}
                     <TableCell className="font-mono text-sm hidden md:table-cell">{alert.dst_ip || "-"}</TableCell>
                     <TableCell className="hidden md:table-cell">{alert.port ?? "-"}</TableCell>
                     <TableCell className="hidden md:table-cell">{alert.protocol || "-"}</TableCell>
-                    {/* --- FIM DA ALTERAÇÃO --- */}
                     <TableCell className="text-right">
                       <Button variant="ghost" size="icon" onClick={() => handleViewDetails(alert)} title="Ver Detalhes">
                         <Eye className="h-4 w-4" />
@@ -217,12 +201,9 @@ export const AlertsTable = ({ limit, analysisId }: AlertsTableProps) => {
               )}
             </TableBody>
           </Table>
-        {/* --- INÍCIO DA ALTERAÇÃO (Responsividade) --- */}
-        </div> {/* 6. Fechamento do div overflow-auto */}
-        {/* --- FIM DA ALTERAÇÃO --- */}
+        </div>
       </div>
 
-       {/* Paginação e Sumário */}
        {!limit && totalPages > 1 && (
          <div className="flex flex-col items-center gap-2">
              <Pagination>
@@ -294,7 +275,6 @@ export const AlertsTable = ({ limit, analysisId }: AlertsTableProps) => {
            </p>
        )}
 
-      {/* Modal de Detalhes do Alerta */}
       <Dialog open={isDetailOpen && !!selectedAlert} onOpenChange={(isOpen) => {
           if (!isOpen) {
             setSelectedAlert(null);
@@ -314,10 +294,7 @@ export const AlertsTable = ({ limit, analysisId }: AlertsTableProps) => {
           
           {selectedAlert && (
             <div className="space-y-3 py-4 text-sm max-h-[70vh] overflow-y-auto pr-2">
-              {/* --- INÍCIO DA ALTERAÇÃO (Responsividade) --- */}
-              {/* 6. Grid responsivo no modal (sm) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
-              {/* --- FIM DA ALTERAÇÃO --- */}
                 <div><span className="font-medium text-muted-foreground w-24 inline-block">Tipo:</span> {selectedAlert.alert_type}</div>
                 <div><span className="font-medium text-muted-foreground w-24 inline-block">Severidade:</span> 
                   <Badge variant={severityColors[selectedAlert.severity.toLowerCase()] || 'secondary'}>

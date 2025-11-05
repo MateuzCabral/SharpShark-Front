@@ -1,20 +1,16 @@
-// src/componentes/dashboard/TrafficChart.tsx
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { AlertCircle } from "lucide-react"; // Para mensagem de "sem dados"
+import { AlertCircle } from "lucide-react";
 
-// Interface para os pontos de dados esperados
 interface TrafficDataPoint {
-  time: string; // Formato "HH:00"
+  time: string;
   packets: number;
 }
 
-// Propriedade esperada pelo componente
 interface TrafficChartProps {
   data: TrafficDataPoint[];
 }
 
 export const TrafficChart = ({ data }: TrafficChartProps) => {
-  // Verifica se há dados para exibir
   if (!data || data.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-[300px] text-muted-foreground bg-muted/30 rounded-md">
@@ -25,71 +21,59 @@ export const TrafficChart = ({ data }: TrafficChartProps) => {
   }
 
   return (
-    // Usa ResponsiveContainer para ajustar ao tamanho do Card
     <ResponsiveContainer width="100%" height={300}>
       <LineChart
         data={data}
-        margin={{ top: 5, right: 20, left: -15, bottom: 5 }} // Ajuste margens para melhor visualização dos eixos
+        margin={{ top: 5, right: 20, left: -15, bottom: 5 }}
       >
-        {/* Grid de fundo */}
         <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
 
-        {/* Eixo X (Tempo) */}
         <XAxis
-          dataKey="time" // Usa a chave 'time' dos dados
+          dataKey="time"
           stroke="hsl(var(--muted-foreground))"
-          fontSize={10} // Fonte menor para caber mais labels
-          tickLine={false} // Remove pequenas linhas do eixo X
-          axisLine={false} // Remove linha principal do eixo X
-          interval="preserveStartEnd" // Garante que o primeiro e último label apareçam
-          // Tenta mostrar menos labels se houver muitos pontos (ex: a cada 4 horas)
-          // tickCount={7} // Alternativa: definir número fixo de ticks
-          // Ou filtrar os ticks:
-           ticks={data.filter((_, index) => index % 4 === 0).map(d => d.time)} // Mostra a cada 4h
+          fontSize={10}
+          tickLine={false}
+          axisLine={false}
+          interval="preserveStartEnd"
+           ticks={data.filter((_, index) => index % 4 === 0).map(d => d.time)}
         />
 
-        {/* Eixo Y (Pacotes) */}
         <YAxis
           stroke="hsl(var(--muted-foreground))"
           fontSize={10}
           tickLine={false}
           axisLine={false}
-          // Formata números grandes (ex: 1000 -> 1k, 1500000 -> 1.5M)
           tickFormatter={(value) => {
             if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
             if (value >= 1000) return `${(value / 1000).toFixed(0)}k`;
             return value.toString();
           }}
-          width={40} // Aumenta espaço para labels formatados (ex: 1.5M)
+          width={40}
         />
 
-        {/* Tooltip customizado */}
         <Tooltip
-          cursor={{ stroke: 'hsl(var(--primary))', strokeWidth: 1, strokeDasharray: '3 3' }} // Linha vertical tracejada ao passar o mouse
+          cursor={{ stroke: 'hsl(var(--primary))', strokeWidth: 1, strokeDasharray: '3 3' }}
           contentStyle={{
-            backgroundColor: "hsl(var(--card) / 0.9)", // Fundo do card com transparência
+            backgroundColor: "hsl(var(--card) / 0.9)",
             border: "1px solid hsl(var(--border))",
-            borderRadius: "var(--radius)", // Usa variável CSS do tema
-            boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)", // Sombra padrão tailwind
-            padding: "8px 12px", // Ajusta padding interno
+            borderRadius: "var(--radius)",
+            boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
+            padding: "8px 12px",
           }}
-          labelStyle={{ marginBottom: '4px', color: "hsl(var(--muted-foreground))", fontSize: '12px' }} // Estilo do label (hora)
-          itemStyle={{ color: "hsl(var(--primary))", fontWeight: '500' }}   // Estilo do valor (packets)
-          // Formata o conteúdo do tooltip
+          labelStyle={{ marginBottom: '4px', color: "hsl(var(--muted-foreground))", fontSize: '12px' }}
+          itemStyle={{ color: "hsl(var(--primary))", fontWeight: '500' }}
           formatter={(value: number, name: string, props: any) => [`${value.toLocaleString()}`, `Pacotes às ${props.payload.time}`]}
-          // Não precisa mostrar o label (hora) de novo, já está no formatter
           labelFormatter={() => ''}
         />
 
-        {/* Linha do gráfico */}
         <Line
-          type="monotone" // Curva suave
-          dataKey="packets" // Usa a chave 'packets'
-          name="Pacotes" // Nome que aparece no tooltip (antes do formatter)
-          stroke="hsl(var(--primary))" // Cor da linha
-          strokeWidth={2} // Espessura da linha
-          dot={{ fill: "hsl(var(--primary))", r: 2, strokeWidth: 0 }} // Pontos nos dados (pequenos)
-          activeDot={{ r: 5, strokeWidth: 1, stroke: 'hsl(var(--background))', fill: 'hsl(var(--primary))' }} // Ponto ativo maior com borda
+          type="monotone"
+          dataKey="packets"
+          name="Pacotes"
+          stroke="hsl(var(--primary))"
+          strokeWidth={2}
+          dot={{ fill: "hsl(var(--primary))", r: 2, strokeWidth: 0 }}
+          activeDot={{ r: 5, strokeWidth: 1, stroke: 'hsl(var(--background))', fill: 'hsl(var(--primary))' }}
         />
       </LineChart>
     </ResponsiveContainer>

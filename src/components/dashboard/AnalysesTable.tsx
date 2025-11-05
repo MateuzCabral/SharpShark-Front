@@ -1,5 +1,4 @@
-// src/componentes/dashboard/AnalysesTable.tsx
-import { useState, useEffect, useRef } from "react"; // 1. Adicionado useEffect e useRef
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -25,7 +24,6 @@ import {
   PaginationPrevious,
   PaginationEllipsis
 } from "@/components/ui/pagination"; 
-// 2. Adicionar importações do AlertDialog
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,7 +36,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { formatUtcDateToBrazil } from "@/lib/utils"; 
 
-// Mapeamento de status
 const statusConfig: Record<string, { variant: "default" | "secondary" | "destructive" | "outline", label: string }> = {
   completed: { variant: "default", label: "Concluída" },
   in_progress: { variant: "secondary", label: "Processando" },
@@ -46,7 +43,6 @@ const statusConfig: Record<string, { variant: "default" | "secondary" | "destruc
   failed: { variant: "destructive", label: "Falhou" },
 };
 
-// 3. Tipo para o mapa de estado anterior
 type AnalysisStatusMap = { [id: string]: string };
 
 export const AnalysesTable = () => {
@@ -55,24 +51,21 @@ export const AnalysesTable = () => {
   const navigate = useNavigate(); 
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
-  // 4. Estado para a fila de notificações e referência para o estado anterior
   const [completedQueue, setCompletedQueue] = useState<AnalysisReadSimple[]>([]);
   const previousAnalyses = useRef<AnalysisStatusMap>({});
   
-  const queryClient = useQueryClient(); // Já estava no seu código
+  const queryClient = useQueryClient();
 
   const { data, isLoading, error, isFetching } = useQuery({
     queryKey: ['analyses', currentPage, itemsPerPage],
     queryFn: () => getAnalyses(currentPage, itemsPerPage),
     placeholderData: (previousData) => previousData,
-    // Polling já está sendo definido globalmente no Dashboard.tsx
   });
 
   const analyses = data?.items ?? [];
   const totalPages = data?.pages ?? 0;
   const totalItems = data?.total ?? 0;
 
-  // 5. useEffect para detectar análises concluídas
   useEffect(() => {
     if (analyses.length > 0) {
       const newCompleted: AnalysisReadSimple[] = [];
@@ -80,22 +73,19 @@ export const AnalysesTable = () => {
 
       analyses.forEach(analysis => {
         const oldStatus = previousAnalyses.current[analysis.id];
-        // Se o status anterior era 'in_progress' E o novo é 'completed'
         if (oldStatus === 'in_progress' && analysis.status === 'completed') {
           newCompleted.push(analysis);
         }
         currentStatusMap[analysis.id] = analysis.status;
       });
 
-      // Adiciona as novas análises concluídas à fila
       if (newCompleted.length > 0) {
         setCompletedQueue(prevQueue => [...prevQueue, ...newCompleted]);
       }
 
-      // Atualiza o estado anterior para a próxima verificação
       previousAnalyses.current = currentStatusMap;
     }
-  }, [analyses]); // Depende dos dados do useQuery
+  }, [analyses]);
 
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages) {
@@ -127,14 +117,11 @@ export const AnalysesTable = () => {
     }
   };
 
-  // 6. Funções para controlar o modal de notificação
   const handleModalAction = (confirm: boolean) => {
     if (confirm && completedQueue.length > 0) {
-      // Pega o primeiro da fila e navega
       const analysisToView = completedQueue[0];
       navigate(`/analysis/${analysisToView.id}`);
     }
-    // Remove o primeiro da fila (seja 'Sim' ou 'Não') e permite que o próximo apareça
     setCompletedQueue(prevQueue => prevQueue.slice(1));
   };
 
@@ -157,20 +144,17 @@ export const AnalysesTable = () => {
 
   return (
     <div className="space-y-4">
-      {/* Container da Tabela com Responsividade */}
       <div className="rounded-md border border-border/50 relative">
         {isFetching && (
             <div className="absolute inset-0 bg-background/50 flex justify-center items-center z-10">
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
             </div>
         )}
-        {/* Div para overflow da tabela em telas pequenas */}
         <div className="relative w-full overflow-auto">
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-muted/50">
                 <TableHead>Arquivo</TableHead>
-                {/* Colunas responsivas */}
                 <TableHead className="hidden md:table-cell">Pacotes</TableHead>
                 <TableHead className="hidden md:table-cell">Tamanho</TableHead>
                 <TableHead>Status</TableHead>
@@ -191,7 +175,6 @@ export const AnalysesTable = () => {
                     <TableCell className="font-medium max-w-[200px] truncate">
                       {analysis.file?.file_name || `Análise ID: ${analysis.id}`}
                     </TableCell>
-                    {/* Colunas responsivas */}
                     <TableCell className="hidden md:table-cell">{analysis.total_packets.toLocaleString()}</TableCell>
                     <TableCell className="hidden md:table-cell">
                       {analysis.file?.file_size ? `${analysis.file.file_size.toFixed(1)} MB` : '-'}
@@ -232,7 +215,6 @@ export const AnalysesTable = () => {
         </div>
       </div>
 
-       {/* Paginação */}
        {totalPages > 1 && (
          <Pagination>
            <PaginationContent>
@@ -278,9 +260,7 @@ export const AnalysesTable = () => {
           </p>
        )}
 
-      {/* 7. AlertDialog para a notificação */}
       <AlertDialog open={completedQueue.length > 0} onOpenChange={(isOpen) => {
-          // Se o usuário fechar clicando fora (isOpen == false), trata como "Não"
           if (!isOpen) handleModalAction(false);
       }}>
         <AlertDialogContent>

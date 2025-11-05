@@ -1,5 +1,3 @@
-// Substitua este arquivo em: SharpShark-Front/src/components/dashboard/CustomRules.tsx
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -7,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-// --- (MUDANÇA 1) ---
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,11 +16,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-// --- (FIM MUDANÇA 1) ---
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast as sonnerToast } from "sonner";
-import { Plus, Trash2, Shield, Loader2, AlertCircle, Pencil } from "lucide-react"; // Import 'Pencil'
+import { Plus, Trash2, Shield, Loader2, AlertCircle, Pencil } from "lucide-react";
 import {
   getRules,
   createRule,
@@ -147,14 +143,12 @@ export const CustomRules = () => {
       sonnerToast.error("Regra removida", {
         description: `A regra (ID: ${ruleId.substring(0, 8)}...) foi removida.`,
       });
-      // Se for o último item da página, volta para a página anterior
       if (rules.length === 1 && currentPage > 1) {
         setCurrentPage(currentPage - 1);
       }
     }
   });
 
-  // Handlers
   const handleCreate = () => {
     if (!formData.name || !formData.value || !formData.alert_type) {
       sonnerToast.warning("Campos obrigatórios", { description: "Nome, Valor e Tipo de Alerta são necessários." });
@@ -199,10 +193,6 @@ export const CustomRules = () => {
     updateRuleMutation.mutate({ ruleId: selectedRule.id, ruleData: updateData });
   };
 
-  // --- (MUDANÇA 2) ---
-  // A função 'handleDelete' foi removida.
-  // --- (FIM MUDANÇA 2) ---
-
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages) {
       setCurrentPage(newPage);
@@ -219,7 +209,6 @@ export const CustomRules = () => {
     }
   };
 
-  // --- TRATAMENTO DE ESTADOS ---
   if (isLoading && !isError) {
     return <Card><CardContent className="flex justify-center items-center h-60"><Loader2 className="h-8 w-8 animate-spin text-primary" /><span className="ml-2">Carregando regras...</span></CardContent></Card>;
   }
@@ -231,7 +220,6 @@ export const CustomRules = () => {
     return <Card><CardContent className="flex justify-center items-center h-60 text-destructive"><AlertCircle className="h-8 w-8 mr-2" /><span>Falha ao carregar regras.</span></CardContent></Card>;
   }
 
-  // --- RENDERIZAÇÃO NORMAL ---
   return (
     <Card className="relative">
       {isFetching && !isLoading && (
@@ -250,7 +238,6 @@ export const CustomRules = () => {
               </CardDescription>
             </div>
           </div>
-          {/* Dialog de Criação (sem mudança) */}
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
               <Button>
@@ -342,7 +329,6 @@ export const CustomRules = () => {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      {/* --- (MUDANÇA 3) --- */}
                       <Button
                         variant="ghost"
                         size="icon"
@@ -358,7 +344,7 @@ export const CustomRules = () => {
                           <Button
                             variant="ghost"
                             size="icon"
-                            disabled={deleteRuleMutation.isPending || updateRuleMutation.isPending} // Desabilita se qualquer mutação estiver em progresso
+                            disabled={deleteRuleMutation.isPending || updateRuleMutation.isPending}
                             title={`Remover regra ${rule.name}`}
                           >
                             {deleteRuleMutation.isPending && deleteRuleMutation.variables === rule.id
@@ -385,7 +371,6 @@ export const CustomRules = () => {
                           </AlertDialogFooter>
                         </AlertDialogContent>
                       </AlertDialog>
-                      {/* --- (FIM MUDANÇA 3) --- */}
                     </TableCell>
                   </TableRow>
                 ))
@@ -394,7 +379,6 @@ export const CustomRules = () => {
           </Table>
         </div>
 
-        {/* Paginação (sem mudança) */}
         {totalPages > 1 && (
           <div className="mt-4 flex flex-col items-center gap-2">
             <Pagination>
@@ -422,7 +406,6 @@ export const CustomRules = () => {
         )}
       </CardContent>
 
-      {/* Dialog de Edição (sem mudança) */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent>
           <DialogHeader>
@@ -470,8 +453,6 @@ export const CustomRules = () => {
         </DialogContent>
       </Dialog>
 
-
-      {/* Estilo Select (sem mudança) */}
       <style jsx global>{`
         .input-like-select { display: flex; height: 2.5rem; width: 100%; border-radius: 0.375rem; border: 1px solid hsl(var(--input)); background-color: hsl(var(--background)); padding-left: 0.75rem; padding-right: 2.5rem; padding-top: 0.5rem; padding-bottom: 0.5rem; font-size: 0.875rem; line-height: 1.25rem; outline: none; appearance: none; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); background-position: right 0.5rem center; background-repeat: no-repeat; background-size: 1.5em 1.5em; }
         .input-like-select:focus { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; border-color: hsl(var(--ring)); }
